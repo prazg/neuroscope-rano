@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NeuroScope-RANO: 100% browser-local neuro-oncology NIfTI workstation for multi-planar + 3D visualization, volumetrics, RANO-Resect EOR, longitudinal RANO 2.0 response, and AI segmentation QA." />
+  <title>NeuroScope-RANO — Clinical Neuro-Oncology &amp; AI Segmentation Workbench</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Mandatory Regulatory & Research Safety Banner -->
+  <div id="safety-banner" class="safety-banner" role="banner" aria-label="Clinical safety notice">
+    <svg class="safety-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M10 2.5L18.2 16.8H1.8L10 2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+      <path d="M10 7.6V11.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+      <circle cx="10" cy="14.2" r="0.95" fill="currentColor" />
+    </svg>
+    <span><strong>Research &amp; Educational Tool</strong> — Not FDA/CE Approved for Clinical Diagnosis. All quantitative outputs require independent neuroradiologist verification.</span>
+  </div>
+
+  <!-- Primary Workstation Header -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-emblem" aria-hidden="true">
+        <svg viewBox="0 0 36 36" fill="none">
+          <rect x="1" y="1" width="34" height="34" rx="9" fill="url(#ns-grad-bg)" stroke="rgba(56,189,248,0.4)" stroke-width="1.2" />
+          <!-- Stylized cerebral hemispheres -->
+          <path d="M17.2 9.5C13.6 9.5 11.2 11.7 11.2 14.4C10 15.2 9.4 16.7 9.7 18.3C9.2 19.7 9.7 21.5 11.1 22.4C11.4 24.8 13.8 26.5 16.8 26.5H17.2V9.5Z" stroke="#38bdf8" stroke-width="1.45" stroke-linejoin="round" fill="rgba(56,189,248,0.12)" />
+          <path d="M18.8 9.5C22.4 9.5 24.8 11.7 24.8 14.4C26 15.2 26.6 16.7 26.3 18.3C26.8 19.7 26.3 21.5 24.9 22.4C24.6 24.8 22.2 26.5 19.2 26.5H18.8V9.5Z" stroke="#2dd4bf" stroke-width="1.45" stroke-linejoin="round" fill="rgba(45,212,191,0.10)" />
+          <!-- Precision RANO crosshair target -->
+          <circle cx="22.1" cy="15.2" r="3.1" stroke="#fde047" stroke-width="1.2" stroke-dasharray="2 1.4" />
+          <path d="M22.1 10.6V19.8M17.5 15.2H26.7" stroke="#2dd4bf" stroke-width="1.15" stroke-linecap="round" />
+          <defs>
+            <linearGradient id="ns-grad-bg" x1="2" y1="2" x2="34" y2="34" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#111d30" />
+              <stop offset="1" stop-color="#0b111d" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <h1>NeuroScope<span class="brand-accent">-RANO</span></h1>
+          <span class="version-pill">v1.0</span>
+        </div>
+        <p class="brand-subtitle">Neuro-Oncology Imaging · RANO-Resect · RANO 2.0 · AI QA</p>
+      </div>
+    </div>
+
+    <!-- Sample Case Quick-Loader -->
+    <div class="topbar-presets" role="group" aria-label="Sample case presets">
+      <span class="control-eyebrow">Sample Workflows</span>
+      <div id="preset-buttons" class="preset-btn-group">
+        <button type="button" class="preset-btn active" data-preset="preop_ai" title="Load Case 01 Pre-Op GBM T1ce, Ground Truth, and AI Prediction">
+          <span class="preset-dot dot-cyan"></span>Pre-Op GBM + AI Eval
+        </button>
+        <button type="button" class="preset-btn" data-preset="eor_pair" title="Load Case 01 Pre-Op & Early Post-Op pair for RANO-Resect EOR">
+          <span class="preset-dot dot-violet"></span>Pre/Post-Op EOR Pair
+        </button>
+        <button type="button" class="preset-btn" data-preset="longitudinal_rano2" title="Load Full 3-Timepoint Case 01 for Longitudinal RANO 2.0 Assessment">
+          <span class="preset-dot dot-amber"></span>Full Longitudinal RANO 2.0
+        </button>
+      </div>
+      <select id="preset-select" class="preset-select-compact" aria-label="Sample case preset selector">
+        <option value="preop_ai">Case 01: Pre-Op GBM + AI Eval</option>
+        <option value="eor_pair">Case 01: Pre/Post-Op EOR Pair</option>
+        <option value="longitudinal_rano2">Case 01: Full Longitudinal RANO 2.0</option>
+      </select>
+    </div>
+
+    <!-- Trust Badge & Report Exports -->
+    <div class="topbar-actions">
+      <div class="privacy-badge" title="All NIfTI parsing, 3D rendering, and clinical metrics run strictly inside local browser memory. Zero files leave your device.">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 1.5L13.2 3.6V7.5C13.2 10.9 10.9 13.6 8 14.6C5.1 13.6 2.8 10.9 2.8 7.5V3.6L8 1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="rgba(34,197,94,0.14)" />
+          <path d="M5.7 8.1L7.2 9.6L10.5 6.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>100% Browser-Local · Zero Server Uploads</span>
+      </div>
+
+      <div class="export-group" role="group" aria-label="Export clinical report">
+        <button type="button" id="btn-export-json" class="btn btn-subtle" title="Download structured JSON clinical &amp; AI report">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.5V10.5M8 10.5L5.2 7.7M8 10.5L10.8 7.7M2.8 12.8H13.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          JSON
+        </button>
+        <button type="button" id="btn-export-csv" class="btn btn-subtle" title="Download CSV metrics summary">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.8" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.3H13.5M6.4 6.3V13.5" stroke="currentColor" stroke-width="1.3"/></svg>
+          CSV
+        </button>
+        <button type="button" id="btn-export-print" class="btn btn-primary-outline" title="Print or Save PDF clinical summary report">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.5 5.8V2.5H11.5V5.8M4.5 11.2H3.2C2.6 11.2 2.2 10.8 2.2 10.2V7C2.2 6.4 2.6 6 3.2 6H12.8C13.4 6 13.8 6.4 13.8 7V10.2C13.8 10.8 13.4 11.2 12.8 11.2H11.5M4.5 9.2H11.5V13.5H4.5V9.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          Print
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Inline Geometry / Error Alert Banner (Hidden when healthy) -->
+  <div id="alert-banner" class="alert-banner hidden" role="alert">
+    <div class="alert-banner-content">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4" />
+        <path d="M8 4.8V8.4M8 10.9V11.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+      <span id="alert-banner-text"></span>
+    </div>
+    <button type="button" id="btn-dismiss-alert" class="btn-icon" aria-label="Dismiss alert">&times;</button>
+  </div>
+
+  <!-- Main 2-Column Clinical Workstation -->
+  <main class="workstation">
+    <!-- LEFT / CENTER: Interactive 4-Pane Imaging Stage -->
+    <section id="viewer-stage" class="viewer-stage" aria-label="Multi-planar and 3D imaging viewport">
+      <!-- Drag-and-drop full-stage overlay -->
+      <div id="stage-drop-overlay" class="stage-drop-overlay hidden" aria-hidden="true">
+        <div class="drop-overlay-card">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M16 21V9M16 9L11.5 13.5M16 9L20.5 13.5M6 22.5V24.5C6 25.6 6.9 26.5 8 26.5H24C25.1 26.5 26 25.6 26 24.5V22.5" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <strong>Drop Local NIfTI Volume (.nii / .nii.gz)</strong>
+          <span>Files remain 100% in browser memory — auto-routed by filename or drop onto a specific slot</span>
+        </div>
+      </div>
+
+      <!-- Compact Local File Dropzones & Timepoint Bar -->
+      <div class="stage-top-strip">
+        <div class="dropzone-row" role="group" aria-label="Local NIfTI file loaders">
+          <label id="dropzone-mri" class="file-slot" for="input-file-mri" data-slot="mri" title="Click or drop a local .nii / .nii.gz base MRI volume">
+            <input id="input-file-mri" type="file" accept=".nii,.gz,.nii.gz" hidden />
+            <span class="file-slot-tag tag-mri">MRI</span>
+            <span id="label-file-mri" class="file-slot-name">case01_preop_t1ce.nii.gz</span>
+          </label>
+
+          <label id="dropzone-mask" class="file-slot" for="input-file-mask" data-slot="mask" title="Click or drop a Primary Segmentation Mask (GT / Pre-Op)">
+            <input id="input-file-mask" type="file" accept=".nii,.gz,.nii.gz" hidden />
+            <span class="file-slot-tag tag-mask">MASK / GT</span>
+            <span id="label-file-mask" class="file-slot-name">case01_preop_gt.nii.gz</span>
+          </label>
+
+          <label id="dropzone-secondary" class="file-slot" for="input-file-secondary" data-slot="secondary" title="Click or drop a Secondary Comparison Mask (AI Prediction or Post-Op Mask)">
+            <input id="input-file-secondary" type="file" accept=".nii,.gz,.nii.gz" hidden />
+            <span class="file-slot-tag tag-comp">PRED / POST-OP</span>
+            <span id="label-file-secondary" class="file-slot-name">case01_preop_pred.nii.gz</span>
+          </label>
+        </div>
+
+        <div class="stage-meta-right">
+          <div id="timepoint-switcher" class="tp-switcher" role="group" aria-label="Case 01 active scan timepoint">
+            <button type="button" class="tp-pill active" data-tp-id="preop">Pre-Op</button>
+            <button type="button" class="tp-pill" data-tp-id="postop">Post-Op &lt;72h</button>
+            <button type="button" class="tp-pill" data-tp-id="followup">6-Mo Follow-Up</button>
+          </div>
+          <span id="active-volume-meta" class="vol-meta-badge mono">64×64×48 · 2.0mm³</span>
+        </div>
+      </div>
+
+      <!-- Live Viewer Controls Toolbar -->
+      <div class="viewer-toolbar" role="toolbar" aria-label="Viewer display controls">
+        <!-- Window / Level -->
+        <div class="tb-group tb-wl">
+          <div class="slider-control">
+            <label for="slider-ww">W</label>
+            <input id="slider-ww" type="range" min="1" max="2000" step="1" value="800" />
+            <span id="val-ww" class="mono slider-val">800</span>
+          </div>
+          <div class="slider-control">
+            <label for="slider-wl">L</label>
+            <input id="slider-wl" type="range" min="-500" max="1500" step="1" value="400" />
+            <span id="val-wl" class="mono slider-val">400</span>
+          </div>
+          <button type="button" id="btn-auto-wl" class="btn-chip" title="Restore auto-percentile Window/Level">Auto</button>
+        </div>
+
+        <div class="tb-divider" aria-hidden="true"></div>
+
+        <!-- Overlay Opacity -->
+        <div class="tb-group">
+          <div class="slider-control">
+            <label for="slider-opacity">Opacity</label>
+            <input id="slider-opacity" type="range" min="0" max="100" step="1" value="55" />
+            <span id="val-opacity" class="mono slider-val">55%</span>
+          </div>
+        </div>
+
+        <div class="tb-divider" aria-hidden="true"></div>
+
+        <!-- BraTS + Post-Op Label Visibility Chips -->
+        <div class="tb-group tb-labels" role="group" aria-label="Segmentation label visibility">
+          <button type="button" class="label-chip active" data-label="1" title="Toggle Label 1: Necrotic / Non-Enhancing Core (NCR/NET)">
+            <span class="swatch" style="--swatch:#f43f5e"></span>NCR
+          </button>
+          <button type="button" class="label-chip active" data-label="2" title="Toggle Label 2: Peritumoral Edema / FLAIR (ED)">
+            <span class="swatch" style="--swatch:#f59e0b"></span>Edema
+          </button>
+          <button type="button" class="label-chip active" data-label="3" title="Toggle Label 3 (legacy 4): Enhancing Tumor (ET)">
+            <span class="swatch" style="--swatch:#38bdf8"></span>Enhancing
+          </button>
+          <button type="button" class="label-chip active" data-label="5" title="Toggle Label 5: Surgical Resection Cavity (RC)">
+            <span class="swatch" style="--swatch:#a855f7"></span>Cavity
+          </button>
+        </div>
+
+        <div class="tb-divider" aria-hidden="true"></div>
+
+        <!-- Overlay Mode Switcher -->
+        <div class="tb-group">
+          <div class="segmented" role="group" aria-label="Overlay rendering mode">
+            <button type="button" class="seg-btn active" data-overlay-mode="mask" title="Show BraTS multi-label segmentation overlay">Seg</button>
+            <button type="button" class="seg-btn" data-overlay-mode="error" title="Show AI TP / FP / FN 3D error overlay">AI Error</button>
+            <button type="button" class="seg-btn" data-overlay-mode="none" title="Hide segmentation overlay">Off</button>
+          </div>
+        </div>
+
+        <!-- View Toggles & Utility Actions -->
+        <div class="tb-group tb-actions-right">
+          <button type="button" id="btn-toggle-crosshairs" class="btn-chip active" title="Toggle synchronized crosshairs (Shortcut: C)">Crosshair</button>
+          <button type="button" id="btn-toggle-calipers" class="btn-chip active" title="Toggle axial RANO 2D calipers (Shortcut: M)">Calipers</button>
+          <button type="button" id="btn-jump-et" class="btn-chip" title="Snap crosshair to active tumor centroid">Center ET</button>
+          <button type="button" id="btn-reset-view" class="btn-chip" title="Reset W/L, crosshair, and 3D camera">Reset</button>
+          <button type="button" id="btn-niivue-info" class="btn-chip btn-info-chip" title="About optional NiiVue WebGL2 ecosystem &amp; offline Canvas architecture" aria-label="NiiVue WebGL2 reference info">
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2V11.2M8 4.8V5.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            NiiVue
+          </button>
+        </div>
+      </div>
+
+      <!-- 2x2 Quad Imaging Grid -->
+      <div class="quad-grid-wrap">
+        <!-- Non-blocking Startup / Volume Loader Overlay -->
+        <div id="viewer-loading" class="viewer-loading" role="status" aria-live="polite">
+          <div class="loading-spinner"></div>
+          <span id="viewer-loading-text">Initializing Case 01 Pre-Op GBM volumes…</span>
+        </div>
+
+        <div class="quad-grid">
+          <!-- Axial Viewport -->
+          <div class="viewport-pane" data-plane="axial">
+            <div class="viewport-header">
+              <div class="vp-title-group">
+                <span class="vp-badge vp-axial">AXIAL</span>
+                <span id="badge-axial-rano" class="vp-rano-pill hidden">RANO Max Slice</span>
+              </div>
+              <div class="vp-slice-ctrl">
+                <input id="slider-slice-z" class="slice-slider" type="range" min="0" max="47" value="24" aria-label="Axial Z slice" />
+                <span id="badge-slice-z" class="mono vp-slice-text">Z 25/48</span>
+              </div>
+            </div>
+            <div class="viewport-canvas-wrap">
+              <canvas id="canvas-axial" aria-label="Axial MRI slice canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Coronal Viewport -->
+          <div class="viewport-pane" data-plane="coronal">
+            <div class="viewport-header">
+              <div class="vp-title-group">
+                <span class="vp-badge vp-coronal">CORONAL</span>
+              </div>
+              <div class="vp-slice-ctrl">
+                <input id="slider-slice-y" class="slice-slider" type="range" min="0" max="63" value="32" aria-label="Coronal Y slice" />
+                <span id="badge-slice-y" class="mono vp-slice-text">Y 33/64</span>
+              </div>
+            </div>
+            <div class="viewport-canvas-wrap">
+              <canvas id="canvas-coronal" aria-label="Coronal MRI slice canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Sagittal Viewport -->
+          <div class="viewport-pane" data-plane="sagittal">
+            <div class="viewport-header">
+              <div class="vp-title-group">
+                <span class="vp-badge vp-sagittal">SAGITTAL</span>
+              </div>
+              <div class="vp-slice-ctrl">
+                <input id="slider-slice-x" class="slice-slider" type="range" min="0" max="63" value="32" aria-label="Sagittal X slice" />
+                <span id="badge-slice-x" class="mono vp-slice-text">X 33/64</span>
+              </div>
+            </div>
+            <div class="viewport-canvas-wrap">
+              <canvas id="canvas-sagittal" aria-label="Sagittal MRI slice canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- 3D Tumor Projection Viewport -->
+          <div class="viewport-pane" data-plane="mip3d">
+            <div class="viewport-header">
+              <div class="vp-title-group">
+                <span class="vp-badge vp-3d">3D PROJECTION</span>
+              </div>
+              <div class="vp-3d-controls">
+                <div class="segmented segmented-xs" role="group" aria-label="3D rendering mode">
+                  <button type="button" id="btn-3d-surface" class="seg-btn active" title="Depth-shaded 3D volumetric tumor surface inside glass brain contour">Surface</button>
+                  <button type="button" id="btn-3d-mip" class="seg-btn" title="Rotatable grayscale MRI + tumor Maximum Intensity Projection">MIP</button>
+                </div>
+                <button type="button" id="btn-3d-reset" class="btn-xs" title="Reset 3D camera orbit">Orbit</button>
+              </div>
+            </div>
+            <div class="viewport-canvas-wrap">
+              <canvas id="canvas-3d" aria-label="3D volumetric tumor projection canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Synchronized Crosshair Telemetry Bar -->
+      <div class="telemetry-bar" aria-live="polite">
+        <div class="tele-items">
+          <div class="tele-item">
+            <span class="tele-k">VOXEL</span>
+            <span id="tele-voxel" class="mono tele-v">(–, –, –)</span>
+          </div>
+          <div class="tele-item">
+            <span class="tele-k">RAS (mm)</span>
+            <span id="tele-mm" class="mono tele-v">(–, –, –)</span>
+          </div>
+          <div class="tele-item">
+            <span class="tele-k">INTENSITY</span>
+            <span id="tele-intensity" class="mono tele-v">–</span>
+          </div>
+          <div class="tele-item tele-label-item">
+            <span class="tele-k">LABEL</span>
+            <span id="tele-label-dot" class="swatch" style="--swatch:#475569"></span>
+            <span id="tele-label-text" class="tele-v">Background</span>
+          </div>
+        </div>
+        <div class="tele-hint">L-Drag: Crosshair · Scroll: Slice · R-Drag/Shift-Drag: W/L · 3D Drag: Orbit</div>
+      </div>
+    </section>
+
+    <!-- RIGHT: 4-Tab Clinical & AI Workbench Panel -->
+    <aside class="workbench" aria-label="Clinical quantitative workbench">
+      <nav class="tab-bar" role="tablist" aria-label="Clinical analysis modules">
+        <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-volumetrics" data-tab="volumetrics">
+          <span>Volumetrics</span>
+        </button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-eor" data-tab="eor">
+          <span>EOR / Resect</span>
+          <span id="tab-badge-eor" class="tab-mini-badge hidden">–</span>
+        </button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-rano2" data-tab="rano2">
+          <span>RANO 2.0</span>
+          <span id="tab-badge-rano2" class="tab-mini-badge hidden">–</span>
+        </button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-ai" data-tab="ai">
+          <span>AI Eval</span>
+          <span id="tab-badge-ai" class="tab-mini-badge hidden">–</span>
+        </button>
+      </nav>
+
+      <div class="workbench-scroll">
+        <!-- TAB 1: VOLUMETRICS & 2D RANO -->
+        <section id="panel-volumetrics" class="tab-panel active" role="tabpanel">
+          <div class="kpi-grid kpi-grid-4">
+            <div class="kpi-card">
+              <span class="kpi-label">Whole Tumor</span>
+              <span id="vol-kpi-wt" class="kpi-value mono">–</span>
+              <span class="kpi-unit">cm³ (WT)</span>
+            </div>
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">Enhancing (ET)</span>
+              <span id="vol-kpi-et" class="kpi-value mono">–</span>
+              <span class="kpi-unit">cm³ (CE)</span>
+            </div>
+            <div class="kpi-card accent-teal">
+              <span class="kpi-label">Axial SPD</span>
+              <span id="vol-kpi-spd" class="kpi-value mono">–</span>
+              <span class="kpi-unit">mm² (d₁×d₂)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">RANO 2.0 Status</span>
+              <span id="vol-kpi-meas" class="kpi-value kpi-value-sm">–</span>
+              <span class="kpi-unit">≥10×10 mm</span>
+            </div>
+          </div>
+
+          <!-- Automated Axial RANO 2D Bidimensional Diameters Card -->
+          <div class="card rano2d-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Automated Axial RANO 2D Diameters</h2>
+                <p class="card-subtitle">Maximal orthogonal cross-section on Enhancing Tumor (ET)</p>
+              </div>
+              <span id="vol-rano2d-badge" class="status-pill pill-neutral">–</span>
+            </div>
+
+            <div class="rano2d-metrics">
+              <div class="rano2d-stat">
+                <span class="stat-k"><span class="caliper-swatch sw-teal"></span>Major d₁</span>
+                <span id="vol-rano2d-d1" class="mono stat-v">– mm</span>
+              </div>
+              <div class="rano2d-stat">
+                <span class="stat-k"><span class="caliper-swatch sw-yellow"></span>Perp d₂</span>
+                <span id="vol-rano2d-d2" class="mono stat-v">– mm</span>
+              </div>
+              <div class="rano2d-stat">
+                <span class="stat-k">Product SPD</span>
+                <span id="vol-rano2d-spd" class="mono stat-v stat-v-accent">– mm²</span>
+              </div>
+              <div class="rano2d-stat">
+                <span class="stat-k">Best Axial Slice</span>
+                <span id="vol-rano2d-slice" class="mono stat-v">–</span>
+              </div>
+              <div class="rano2d-stat">
+                <span class="stat-k">Slice ET Area</span>
+                <span id="vol-rano2d-area" class="mono stat-v">– mm²</span>
+              </div>
+              <div class="rano2d-stat">
+                <span class="stat-k">Lesion Foci</span>
+                <span id="vol-rano2d-comps" class="mono stat-v">–</span>
+              </div>
+            </div>
+
+            <p id="vol-rano2d-note" class="inline-note hidden"></p>
+
+            <div class="card-footer-actions">
+              <button type="button" id="btn-jump-best-slice" class="btn btn-accent-full">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5V4M8 12V14.5M1.5 8H4M12 8H14.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Jump to Best Axial Slice &amp; Show Calipers
+              </button>
+            </div>
+          </div>
+
+          <!-- Compartment Proportions Visual Bar -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Tumor Compartments &amp; BraTS Regions</h2>
+              <span class="card-hint">Click centroid to navigate</span>
+            </div>
+            <div id="vol-compartment-bar" class="chart-slot chart-slot-thin"></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Region</th>
+                    <th class="num">Vol (cm³)</th>
+                    <th class="num">% WT</th>
+                    <th class="num">Eq. Ø (mm)</th>
+                    <th class="num">Centroid</th>
+                  </tr>
+                </thead>
+                <tbody id="vol-table-body">
+                  <tr><td colspan="5" class="empty-cell">Loading volumetrics…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: EOR & RANO-RESECT -->
+        <section id="panel-eor" class="tab-panel" role="tabpanel">
+          <!-- Pre/Post Mask Pair Binding Strip -->
+          <div class="pair-bar">
+            <div class="pair-slot">
+              <span class="pair-k">PRE-OP MASK</span>
+              <span id="eor-pre-label" class="pair-v mono">Not loaded</span>
+              <label class="btn-xs btn-upload-inline" for="input-eor-pre">Load
+                <input id="input-eor-pre" type="file" accept=".nii,.gz,.nii.gz" hidden />
+              </label>
+            </div>
+            <div class="pair-slot">
+              <span class="pair-k">POST-OP MASK</span>
+              <span id="eor-post-label" class="pair-v mono">Not loaded</span>
+              <label class="btn-xs btn-upload-inline" for="input-eor-post">Load
+                <input id="input-eor-post" type="file" accept=".nii,.gz,.nii.gz" hidden />
+              </label>
+            </div>
+            <button type="button" id="btn-eor-load-sample" class="btn btn-subtle btn-sm-full">Load Case 01 Pre/Post-Op Pair</button>
+          </div>
+
+          <!-- Hero RANO-Resect Class Card -->
+          <div id="eor-hero-card" class="hero-card hero-neutral">
+            <div class="hero-eyebrow">RANO-RESECT CLASSIFICATION (KARSCHNIA ET AL., 2023)</div>
+            <div class="hero-main-row">
+              <span id="eor-hero-class" class="hero-code">–</span>
+              <span id="eor-hero-name" class="hero-name">Awaiting Pre/Post-Op Masks</span>
+            </div>
+            <p id="eor-hero-desc" class="hero-desc">Load a pre-operative and early post-operative (&lt;72h) mask to calculate Extent of Resection and surgical class.</p>
+          </div>
+
+          <!-- EOR Metrics Grid -->
+          <div class="kpi-grid kpi-grid-3">
+            <div class="kpi-card accent-teal">
+              <span class="kpi-label">CE EOR</span>
+              <span id="eor-kpi-ce-pct" class="kpi-value mono">–</span>
+              <span class="kpi-unit">% Enhancing resected</span>
+            </div>
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">Residual CE</span>
+              <span id="eor-kpi-res-ce" class="kpi-value mono">–</span>
+              <span class="kpi-unit">cm³ remaining</span>
+            </div>
+            <div class="kpi-card accent-amber">
+              <span class="kpi-label">Non-CE EOR</span>
+              <span id="eor-kpi-nonce-pct" class="kpi-value mono">–</span>
+              <span class="kpi-unit">% NCR+ED reduced</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Pre-Op CE</span>
+              <span id="eor-kpi-pre-ce" class="kpi-value mono">–</span>
+              <span class="kpi-unit">cm³ baseline</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Residual Non-CE</span>
+              <span id="eor-kpi-res-nonce" class="kpi-value mono">–</span>
+              <span class="kpi-unit">cm³ remaining</span>
+            </div>
+            <div class="kpi-card accent-violet">
+              <span class="kpi-label">Cavity (RC)</span>
+              <span id="eor-kpi-cavity" class="kpi-value mono">–</span>
+              <span class="kpi-unit">cm³ surgical bed</span>
+            </div>
+          </div>
+
+          <!-- Pre vs Post SVG Comparison Chart -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Pre-Op vs. Post-Op Compartment Volumes</h2>
+              <span class="card-hint">cm³</span>
+            </div>
+            <div id="eor-chart-container" class="chart-slot"></div>
+            <ul id="eor-rationale-list" class="rationale-list"></ul>
+          </div>
+
+          <!-- Interactive Karschnia et al. 6-Tier Legend -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Karschnia et al. (2023) RANO-Resect Legend</h2>
+              <span class="card-hint">Click tier for criteria</span>
+            </div>
+            <div id="eor-legend-list" class="resect-legend"></div>
+          </div>
+        </section>
+
+        <!-- TAB 3: LONGITUDINAL RANO 2.0 -->
+        <section id="panel-rano2" class="tab-panel" role="tabpanel">
+          <!-- Hero RANO 2.0 Response Banner -->
+          <div id="rano2-hero-card" class="hero-card hero-neutral">
+            <div class="hero-eyebrow">RANO 2.0 RESPONSE ASSESSMENT (WEN ET AL., JCO 2023)</div>
+            <div class="hero-main-row">
+              <span id="rano2-hero-badge" class="hero-code">–</span>
+              <span id="rano2-hero-title" class="hero-name">Evaluating longitudinal trajectory…</span>
+            </div>
+            <p id="rano2-hero-sub" class="hero-desc"></p>
+            <div id="rano2-criteria-pills" class="criteria-pills"></div>
+          </div>
+
+          <!-- Delta vs Baseline & Nadir KPIs -->
+          <div class="kpi-grid kpi-grid-4">
+            <div class="kpi-card">
+              <span class="kpi-label">SPD vs Base</span>
+              <span id="rano2-delta-spd-base" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">2D RANO</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">SPD vs Nadir</span>
+              <span id="rano2-delta-spd-nadir" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">≥+25% = PD</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Vol vs Base</span>
+              <span id="rano2-delta-vol-base" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">3D ET Vol</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Vol vs Nadir</span>
+              <span id="rano2-delta-vol-nadir" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">≥+40% = PD</span>
+            </div>
+          </div>
+
+          <!-- Interactive Clinical Co-Factor Controls -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Clinical Co-Factors</h2>
+              <span id="rano2-eval-target-label" class="card-hint mono">Current Follow-Up</span>
+            </div>
+            <div class="cofactor-grid">
+              <div class="field-group">
+                <label for="rano2-steroids">Corticosteroid Status</label>
+                <select id="rano2-steroids" class="ui-select">
+                  <option value="none_or_physiologic">None / Physiologic (required for CR)</option>
+                  <option value="stable_or_decreased">Stable / Decreased (therapeutic; max PR)</option>
+                  <option value="increased">Increased (blocks CR/PR/MR → SD)</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="rano2-clinical">Clinical Status</label>
+                <select id="rano2-clinical" class="ui-select">
+                  <option value="stable_or_improved">Stable / Improved</option>
+                  <option value="deteriorated">Deteriorated (triggers PD)</option>
+                </select>
+              </div>
+              <label class="toggle-row" for="rano2-new-lesion">
+                <input id="rano2-new-lesion" type="checkbox" />
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="toggle-text">
+                  <strong>New Measurable Lesion</strong>
+                  <small>≥10 × 10 mm outside prior target</small>
+                </span>
+              </label>
+              <label class="toggle-row" for="rano2-within-12w">
+                <input id="rano2-within-12w" type="checkbox" />
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="toggle-text">
+                  <strong>≤12 Weeks Post-RT</strong>
+                  <small>Pseudoprogression guard (Preliminary PD if clinically stable)</small>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Interactive SVG Longitudinal Trajectory Chart -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Longitudinal Tumor Trajectory</h2>
+              <span id="rano2-nadir-summary" class="card-hint mono">Nadir: –</span>
+            </div>
+            <div id="rano2-chart-container" class="chart-slot chart-slot-tall"></div>
+          </div>
+
+          <!-- Multi-Timepoint Editable Table -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Longitudinal Scan Series</h2>
+                <p class="card-subtitle">Post-RT MRI (~4 wks post-RT) is the standard RANO 2.0 baseline (Case 01 uses Early Post-Op as an illustrative pre-RT/surgical baseline); edit values or add scans</p>
+              </div>
+              <div class="inline-actions">
+                <button type="button" id="btn-rano2-snapshot" class="btn-xs" title="Add currently loaded mask volumetrics as a new follow-up timepoint">+ Current Mask</button>
+                <button type="button" id="btn-rano2-add" class="btn-xs btn-xs-accent" title="Append a custom editable follow-up scan">+ Add Scan</button>
+                <button type="button" id="btn-rano2-reset" class="btn-xs" title="Restore Case 01 longitudinal timepoints">Reset</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table tp-table">
+                <thead>
+                  <tr>
+                    <th title="Include in RANO 2.0 baseline/follow-up evaluation">Eval</th>
+                    <th>Scan / Date</th>
+                    <th class="num">SPD (mm²)</th>
+                    <th class="num">Vol (cm³)</th>
+                    <th class="num">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="rano2-table-body"></tbody>
+              </table>
+            </div>
+            <ul id="rano2-rationale-list" class="rationale-list"></ul>
+          </div>
+        </section>
+
+        <!-- TAB 4: AI SEGMENTATION EVALUATOR -->
+        <section id="panel-ai" class="tab-panel" role="tabpanel">
+          <!-- GT vs Pred Binding Bar -->
+          <div class="pair-bar">
+            <div class="pair-slot">
+              <span class="pair-k">GROUND TRUTH</span>
+              <span id="ai-gt-label" class="pair-v mono">Not loaded</span>
+              <label class="btn-xs btn-upload-inline" for="input-ai-gt">Load
+                <input id="input-ai-gt" type="file" accept=".nii,.gz,.nii.gz" hidden />
+              </label>
+            </div>
+            <div class="pair-slot">
+              <span class="pair-k">AI PREDICTION</span>
+              <span id="ai-pred-label" class="pair-v mono">Not loaded</span>
+              <label class="btn-xs btn-upload-inline" for="input-ai-pred">Load
+                <input id="input-ai-pred" type="file" accept=".nii,.gz,.nii.gz" hidden />
+              </label>
+            </div>
+            <button type="button" id="btn-ai-load-sample" class="btn btn-subtle btn-sm-full">Load Case 01 GT vs. AI Pred</button>
+          </div>
+
+          <!-- Region Selector + One-Click 3D TP/FP/FN Overlay CTA -->
+          <div class="card ai-control-card">
+            <div class="ai-top-row">
+              <div id="ai-region-selector" class="region-pills" role="group" aria-label="AI evaluation region selector">
+                <button type="button" class="region-pill active" data-region="ET">ET</button>
+                <button type="button" class="region-pill" data-region="TC">TC</button>
+                <button type="button" class="region-pill" data-region="WT">WT</button>
+                <button type="button" class="region-pill" data-region="RC">RC</button>
+              </div>
+              <div class="ai-summary-pills">
+                <span class="summary-chip">Mean Dice <strong id="ai-summary-dice" class="mono">–</strong></span>
+                <span class="summary-chip">Mean HD95 <strong id="ai-summary-hd95" class="mono">–</strong></span>
+              </div>
+            </div>
+
+            <button type="button" id="btn-ai-toggle-error-overlay" class="btn btn-error-overlay" aria-pressed="false">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 1.8L13.8 5.1V10.9L8 14.2L2.2 10.9V5.1L8 1.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                <path d="M8 8V14.2M8 8L13.8 5.1M8 8L2.2 5.1" stroke="currentColor" stroke-width="1.2"/>
+              </svg>
+              <span>Show 3D TP/FP/FN Error Overlay</span>
+            </button>
+
+            <div id="ai-error-legend" class="error-legend">
+              <span class="err-tag"><span class="swatch" style="--swatch:#22c55e"></span>TP (Correct)</span>
+              <span class="err-tag"><span class="swatch" style="--swatch:#f43f5e"></span>FP (Over-seg)</span>
+              <span class="err-tag"><span class="swatch" style="--swatch:#38bdf8"></span>FN (Missed)</span>
+              <span id="ai-kpi-voxels" class="mono err-vox-summary">–</span>
+            </div>
+          </div>
+
+          <!-- Selected Region Hero Metric Cards -->
+          <div class="kpi-grid kpi-grid-4">
+            <div class="kpi-card accent-emerald">
+              <span class="kpi-label">Dice (DSC)</span>
+              <span id="ai-kpi-dice" class="kpi-value mono">–</span>
+              <span class="kpi-unit">0.000–1.000</span>
+            </div>
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">IoU (Jaccard)</span>
+              <span id="ai-kpi-iou" class="kpi-value mono">–</span>
+              <span class="kpi-unit">overlap</span>
+            </div>
+            <div class="kpi-card accent-amber">
+              <span class="kpi-label">HD95</span>
+              <span id="ai-kpi-hd95" class="kpi-value mono">–</span>
+              <span class="kpi-unit">mm (exact EDT)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">ASSD</span>
+              <span id="ai-kpi-assd" class="kpi-value mono">–</span>
+              <span class="kpi-unit">mm surface</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Sensitivity</span>
+              <span id="ai-kpi-sens" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">recall</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Precision</span>
+              <span id="ai-kpi-prec" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">PPV</span>
+            </div>
+            <div class="kpi-card kpi-span-2">
+              <span class="kpi-label">Relative Volume Error (RVE)</span>
+              <span id="ai-kpi-rve" class="kpi-value kpi-value-md mono">–</span>
+              <span class="kpi-unit">(Pred − GT) / GT</span>
+            </div>
+          </div>
+
+          <!-- Multi-Region SVG Benchmark Chart -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Multi-Region AI Benchmark</h2>
+              <span class="card-hint">Click region bar group to inspect</span>
+            </div>
+            <div id="ai-chart-container" class="chart-slot"></div>
+          </div>
+
+          <!-- Per-Region Comparison Table -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Per-Region Quantitative QA Table</h2>
+              <span class="card-hint">Click row to switch 3D error region</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Region</th>
+                    <th class="num">Dice</th>
+                    <th class="num">IoU</th>
+                    <th class="num">HD95</th>
+                    <th class="num">ASSD</th>
+                    <th class="num">RVE</th>
+                    <th class="num">GT / Pred</th>
+                  </tr>
+                </thead>
+                <tbody id="ai-table-body">
+                  <tr><td colspan="7" class="empty-cell">Loading AI evaluation…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Optional NiiVue Ecosystem Reference Modal (100% Zero-Network until user opens link) -->
+  <div id="niivue-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="niivue-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="niivue-modal-title">Imaging Engine &amp; NiiVue WebGL2 Ecosystem</h2>
+        <button type="button" id="btn-close-niivue-modal" class="btn-icon" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>
+          <strong>NeuroScope-RANO</strong> uses its built-in zero-dependency <strong>NeuroViewer</strong> (HTML5 Canvas 2D multi-planar + software 3D surface/MIP engine) so the workstation runs <strong>100% offline</strong> with zero external CDN dependencies or data egress.
+        </p>
+        <p>
+          For teams deploying custom GPU-accelerated WebGL2 raycasting, tractography, or mesh overlays in connected environments, NeuroScope-RANO's NIfTI-1 coordinate system (RAS+, BraTS 2023/2024 labels) is designed to pair cleanly with the open-source <strong>NiiVue</strong> ecosystem.
+        </p>
+        <div class="modal-callout">
+          <strong>Offline Notice:</strong> No external scripts are fetched by this application. Clicking the reference link below opens NiiVue's public documentation in a new browser tab when online.
+        </div>
+        <div class="modal-links">
+          <a href="https://niivue.github.io/niivue/" target="_blank" rel="noopener noreferrer" class="btn btn-primary-outline">NiiVue Project &amp; Demos ↗</a>
+          <a href="https://github.com/niivue/niivue" target="_blank" rel="noopener noreferrer" class="btn btn-subtle">NiiVue GitHub Repository ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- Dedicated Print-Only Clinical Summary Container (Populated right before window.print()) -->
+  <section id="print-report" class="print-report" aria-hidden="true"></section>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

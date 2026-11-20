@@ -1,0 +1,230 @@
+cff-version: 1.2.0
+message: >-
+  If you use NeuroScope-RANO in academic research, clinical studies, or AI
+  segmentation benchmarking, please cite it using the metadata from this file.
+type: software
+title: >-
+  NeuroScope-RANO: Zero-Upload Browser-Local Neuro-Oncology Volumetrics,
+  RANO-Resect, RANO 2.0, and AI Segmentation QA Workstation
+abstract: >-
+  NeuroScope-RANO is a 100% client-side, zero-upload, open-access static web
+  workstation for neuro-oncology imaging research and education. Built with
+  zero-build HTML5, CSS3, and native ES Modules, it provides native NIfTI-1
+  (.nii/.nii.gz) parsing, synchronized multi-planar and 3D MIP/surface
+  visualization, BraTS 2023/2024 + post-operative tumor volumetrics, automated
+  2D RANO maximal perpendicular diameters, RANO-Resect extent-of-resection
+  classification, RANO 2.0 longitudinal response assessment, and exact
+  anisotropic 3D AI segmentation quality assurance (Dice, IoU, HD95, ASSD, and
+  TP/FP/FN error overlays).
+version: "1.0.0"
+date-released: "2026-11-19"
+license: MIT
+authors:
+  - name: "Open Neuro-Oncology Contributors"
+keywords:
+  - neuro-oncology
+  - glioblastoma
+  - RANO 2.0
+  - RANO-Resect
+  - BraTS
+  - NIfTI
+  - medical-imaging
+  - tumor-volumetrics
+  - extent-of-resection
+  - segmentation-evaluation
+  - neurosurgery
+  - neuroradiology
+  - open-science
+references:
+  - type: article
+    title: >-
+      RANO 2.0: Update to the Response Assessment in Neuro-Oncology Criteria
+      for High- and Low-Grade Gliomas in Adults
+    authors:
+      - family-names: Wen
+        given-names: "Patrick Y."
+      - family-names: Bent
+        name-particle: "van den"
+        given-names: "Martin J."
+      - family-names: Youssef
+        given-names: Gilbert
+      - family-names: Cloughesy
+        given-names: "Timothy F."
+      - family-names: Ellingson
+        given-names: "Benjamin M."
+      - family-names: Weller
+        given-names: Michael
+      - family-names: Galanis
+        given-names: Evanthia
+      - family-names: Barboriak
+        given-names: "Daniel P."
+      - family-names: Groot
+        name-particle: de
+        given-names: "John Frederick"
+      - family-names: Gilbert
+        given-names: "Mark R."
+      - family-names: Huang
+        given-names: "Raymond Y."
+      - family-names: Lassman
+        given-names: "Andrew B."
+      - family-names: Mehta
+        given-names: "Minesh P."
+      - family-names: Molinaro
+        given-names: "Annette M."
+      - family-names: Preusser
+        given-names: Matthias
+      - family-names: Rahman
+        given-names: Rifaquat
+      - family-names: Shankar
+        given-names: "Lalitha K."
+      - family-names: Stupp
+        given-names: Roger
+      - family-names: Villanueva-Meyer
+        given-names: "Javier E."
+      - family-names: Wick
+        given-names: Wolfgang
+      - family-names: Macdonald
+        given-names: "David R."
+      - family-names: Reardon
+        given-names: "David A."
+      - family-names: Vogelbaum
+        given-names: "Michael A."
+      - family-names: Chang
+        given-names: "Susan Marina"
+    journal: "Journal of Clinical Oncology"
+    year: 2023
+    volume: 41
+    issue: 33
+    start: 5187
+    end: 5199
+    doi: "10.1200/JCO.23.01059"
+  - type: article
+    title: >-
+      Prognostic validation of a new classification system for extent of
+      resection in glioblastoma: A report of the RANO resect group
+    authors:
+      - family-names: Karschnia
+        given-names: Philipp
+      - family-names: Young
+        given-names: "Jacob S."
+      - family-names: Dono
+        given-names: Antonio
+      - family-names: Häni
+        given-names: Levin
+      - family-names: Sciortino
+        given-names: Tommaso
+      - family-names: Bruno
+        given-names: Francesco
+      - family-names: Juenger
+        given-names: "Stephanie T."
+      - family-names: Teske
+        given-names: Nico
+      - family-names: Morshed
+        given-names: "Ramin A."
+      - family-names: Haddad
+        given-names: "Alexander F."
+      - family-names: Zhang
+        given-names: Yalan
+      - family-names: Stoecklein
+        given-names: Sophia
+      - family-names: Weller
+        given-names: Michael
+      - family-names: Vogelbaum
+        given-names: "Michael A."
+      - family-names: Beck
+        given-names: Juergen
+      - family-names: Tandon
+        given-names: Nitin
+      - family-names: Hervey-Jumper
+        given-names: Shawn
+      - family-names: Molinaro
+        given-names: "Annette M."
+      - family-names: Rudà
+        given-names: Roberta
+      - family-names: Bello
+        given-names: Lorenzo
+      - family-names: Schnell
+        given-names: Oliver
+      - family-names: Esquenazi
+        given-names: Yoshua
+      - family-names: Ruge
+        given-names: "Maximilian I."
+      - family-names: Grau
+        given-names: "Stefan J."
+      - family-names: Berger
+        given-names: "Mitchel S."
+      - family-names: Chang
+        given-names: "Susan M."
+      - family-names: Bent
+        name-particle: "van den"
+        given-names: Martin
+      - family-names: Tonn
+        given-names: Joerg-Christian
+    journal: "Neuro-Oncology"
+    year: 2023
+    volume: 25
+    issue: 5
+    start: 940
+    end: 954
+    doi: "10.1093/neuonc/noac193"
+  - type: article
+    title: "The Multimodal Brain Tumor Image Segmentation Benchmark (BRATS)"
+    authors:
+      - family-names: Menze
+        given-names: "Bjoern H."
+      - family-names: Jakab
+        given-names: Andras
+      - family-names: Bauer
+        given-names: Stefan
+      - name: "BraTS Challenge Consortium"
+    journal: "IEEE Transactions on Medical Imaging"
+    year: 2015
+    volume: 34
+    issue: 10
+    start: 1993
+    end: 2024
+    doi: "10.1109/TMI.2014.2377694"
+  - type: article
+    title: >-
+      The RSNA-ASNR-MICCAI BraTS 2021 Benchmark on Brain Tumor Segmentation
+      and Radiogenomic Classification
+    authors:
+      - family-names: Baid
+        given-names: Ujjwal
+      - family-names: Ghodasara
+        given-names: Satyam
+      - family-names: Mohan
+        given-names: Suyash
+      - name: "RSNA-ASNR-MICCAI BraTS 2021 Consortium"
+    year: 2021
+    doi: "10.48550/arXiv.2107.02314"
+    url: "https://arxiv.org/abs/2107.02314"
+  - type: article
+    title: >-
+      The 2024 Brain Tumor Segmentation (BraTS) Challenge: Glioma Segmentation
+      on Post-treatment MRI
+    authors:
+      - family-names: "Correia de Verdier"
+        given-names: Maria
+      - family-names: Saluja
+        given-names: Rachit
+      - family-names: Gagnon
+        given-names: Louis
+      - name: "BraTS 2024 Post-Treatment Glioma Consortium"
+    year: 2024
+    doi: "10.48550/arXiv.2405.18368"
+    url: "https://arxiv.org/abs/2405.18368"
+  - type: article
+    title: "Distance Transforms of Sampled Functions"
+    authors:
+      - family-names: Felzenszwalb
+        given-names: "Pedro F."
+      - family-names: Huttenlocher
+        given-names: "Daniel P."
+    journal: "Theory of Computing"
+    year: 2012
+    volume: 8
+    issue: 19
+    start: 415
+    end: 428
+    doi: "10.4086/toc.2012.v008a019"

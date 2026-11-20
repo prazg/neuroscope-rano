@@ -1,0 +1,430 @@
+{
+  "schemaVersion": "1.0",
+  "cases": [
+    {
+      "id": "case01",
+      "title": "Case 01 \u2014 Right Frontal Glioblastoma (IDH-wildtype)",
+      "diagnosis": "Glioblastoma, IDH-wildtype, CNS WHO Grade 4",
+      "location": "Right Frontal Lobe",
+      "molecularProfile": "IDH-wildtype | MGMT promoter unmethylated | TERTp mutant",
+      "syntheticNote": "Synthetic procedural phantom for research & educational demonstration only.",
+      "timepoints": [
+        {
+          "id": "preop",
+          "label": "Pre-Op Diagnostic",
+          "role": "preop",
+          "dayOffset": 0,
+          "date": "2025-01-10",
+          "t1ce": "assets/samples/case01_preop_t1ce.nii.gz",
+          "mask": "assets/samples/case01_preop_gt.nii.gz",
+          "predMask": "assets/samples/case01_preop_pred.nii.gz",
+          "dexamethasoneMgPerDay": 8,
+          "steroids": "stable_or_decreased",
+          "clinicalStatus": "stable_or_improved",
+          "kps": 80,
+          "newMeasurableLesion": false,
+          "within12WeeksPostRT": false,
+          "notes": "Baseline diagnostic MRI showing right frontal ring-enhancing necrotic mass with surrounding FLAIR edema."
+        },
+        {
+          "id": "postop",
+          "label": "Early Post-Op (<72h)",
+          "role": "baseline_postop",
+          "dayOffset": 2,
+          "date": "2025-01-12",
+          "t1ce": "assets/samples/case01_postop_t1ce.nii.gz",
+          "mask": "assets/samples/case01_postop_mask.nii.gz",
+          "predMask": null,
+          "dexamethasoneMgPerDay": 4,
+          "steroids": "stable_or_decreased",
+          "clinicalStatus": "stable_or_improved",
+          "kps": 90,
+          "newMeasurableLesion": false,
+          "within12WeeksPostRT": true,
+          "notes": "Early post-operative MRI (<72h) demonstrating right frontal resection cavity with small posterior-medial residual enhancing focus. Under RANO 2.0 (Wen et al., JCO 2023), post-radiotherapy MRI (~4 weeks post-RT) is the standard baseline for newly diagnosed gliomas treated with RT; Case 01 uses this early post-op scan as an illustrative pre-RT/surgical baseline."
+        },
+        {
+          "id": "followup",
+          "label": "6-Month Follow-Up",
+          "role": "followup",
+          "dayOffset": 182,
+          "date": "2025-07-11",
+          "t1ce": "assets/samples/case01_followup_t1ce.nii.gz",
+          "mask": "assets/samples/case01_followup_mask.nii.gz",
+          "predMask": null,
+          "dexamethasoneMgPerDay": 8,
+          "steroids": "increased",
+          "clinicalStatus": "deteriorated",
+          "kps": 70,
+          "newMeasurableLesion": false,
+          "within12WeeksPostRT": false,
+          "notes": "6-month surveillance scan (>12 wks post-RT) showing nodular enhancing progression along posterior-medial resection margin with increased edema and mild left-hand weakness."
+        }
+      ],
+      "referenceSummary": {
+        "geometry": {
+          "dims": [
+            64,
+            64,
+            48
+          ],
+          "pixdim": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "voxelVolumeMm3": 8.0
+        },
+        "fileSizesBytes": {
+          "case01_preop_t1ce.nii.gz": 104174,
+          "case01_preop_gt.nii.gz": 1716,
+          "case01_preop_pred.nii.gz": 1913,
+          "case01_postop_t1ce.nii.gz": 101836,
+          "case01_postop_mask.nii.gz": 1190,
+          "case01_followup_t1ce.nii.gz": 102943,
+          "case01_followup_mask.nii.gz": 1431
+        },
+        "volumetrics": {
+          "preop": {
+            "labels": {
+              "1": {
+                "voxelCount": 737,
+                "volumeMm3": 5896.0,
+                "volumeCm3": 5.896,
+                "eqSphereDiamMm": 22.414
+              },
+              "2": {
+                "voxelCount": 3459,
+                "volumeMm3": 27672.0,
+                "volumeCm3": 27.672,
+                "eqSphereDiamMm": 37.5273
+              },
+              "3": {
+                "voxelCount": 2237,
+                "volumeMm3": 17896.0,
+                "volumeCm3": 17.896,
+                "eqSphereDiamMm": 32.4528
+              },
+              "5": {
+                "voxelCount": 0,
+                "volumeMm3": 0.0,
+                "volumeCm3": 0.0,
+                "eqSphereDiamMm": 0.0
+              }
+            },
+            "regions": {
+              "WT": {
+                "voxelCount": 6433,
+                "volumeMm3": 51464.0,
+                "volumeCm3": 51.464,
+                "eqSphereDiamMm": 46.1496
+              },
+              "TC": {
+                "voxelCount": 2974,
+                "volumeMm3": 23792.0,
+                "volumeCm3": 23.792,
+                "eqSphereDiamMm": 35.6843
+              },
+              "ET": {
+                "voxelCount": 2237,
+                "volumeMm3": 17896.0,
+                "volumeCm3": 17.896,
+                "eqSphereDiamMm": 32.4528
+              },
+              "RC": {
+                "voxelCount": 0,
+                "volumeMm3": 0.0,
+                "volumeCm3": 0.0,
+                "eqSphereDiamMm": 0.0
+              },
+              "nonCE": {
+                "voxelCount": 4196,
+                "volumeMm3": 33568.0,
+                "volumeCm3": 33.568,
+                "eqSphereDiamMm": 40.0229
+              }
+            },
+            "rano2d": {
+              "region": "ET",
+              "d1Mm": 38.8782,
+              "d2Mm": 31.7195,
+              "spdMm2": 1233.1953,
+              "bestSliceZ": 28,
+              "measurable": true,
+              "majorLine": {
+                "x1": 48.0,
+                "y1": 31.0,
+                "x2": 36.0,
+                "y2": 45.0
+              },
+              "minorLine": {
+                "x1": 48.1412,
+                "y1": 41.8353,
+                "x2": 36.8588,
+                "y2": 32.1647
+              },
+              "sliceAreaMm2": 544.0,
+              "componentCountOnSlice": 1
+            }
+          },
+          "postop": {
+            "labels": {
+              "1": {
+                "voxelCount": 0,
+                "volumeMm3": 0.0,
+                "volumeCm3": 0.0,
+                "eqSphereDiamMm": 0.0
+              },
+              "2": {
+                "voxelCount": 1535,
+                "volumeMm3": 12280.0,
+                "volumeCm3": 12.28,
+                "eqSphereDiamMm": 28.6242
+              },
+              "3": {
+                "voxelCount": 85,
+                "volumeMm3": 680.0,
+                "volumeCm3": 0.68,
+                "eqSphereDiamMm": 10.9103
+              },
+              "5": {
+                "voxelCount": 2553,
+                "volumeMm3": 20424.0,
+                "volumeCm3": 20.424,
+                "eqSphereDiamMm": 33.9141
+              }
+            },
+            "regions": {
+              "WT": {
+                "voxelCount": 1620,
+                "volumeMm3": 12960.0,
+                "volumeCm3": 12.96,
+                "eqSphereDiamMm": 29.1431
+              },
+              "TC": {
+                "voxelCount": 85,
+                "volumeMm3": 680.0,
+                "volumeCm3": 0.68,
+                "eqSphereDiamMm": 10.9103
+              },
+              "ET": {
+                "voxelCount": 85,
+                "volumeMm3": 680.0,
+                "volumeCm3": 0.68,
+                "eqSphereDiamMm": 10.9103
+              },
+              "RC": {
+                "voxelCount": 2553,
+                "volumeMm3": 20424.0,
+                "volumeCm3": 20.424,
+                "eqSphereDiamMm": 33.9141
+              },
+              "nonCE": {
+                "voxelCount": 1535,
+                "volumeMm3": 12280.0,
+                "volumeCm3": 12.28,
+                "eqSphereDiamMm": 28.6242
+              }
+            },
+            "rano2d": {
+              "region": "ET",
+              "d1Mm": 13.3137,
+              "d2Mm": 10.4853,
+              "spdMm2": 139.598,
+              "bestSliceZ": 28,
+              "measurable": true,
+              "majorLine": {
+                "x1": 38.0,
+                "y1": 29.0,
+                "x2": 34.0,
+                "y2": 33.0
+              },
+              "minorLine": {
+                "x1": 37.0,
+                "y1": 32.0,
+                "x2": 34.0,
+                "y2": 29.0
+              },
+              "sliceAreaMm2": 84.0,
+              "componentCountOnSlice": 1
+            }
+          },
+          "followup": {
+            "labels": {
+              "1": {
+                "voxelCount": 0,
+                "volumeMm3": 0.0,
+                "volumeCm3": 0.0,
+                "eqSphereDiamMm": 0.0
+              },
+              "2": {
+                "voxelCount": 2714,
+                "volumeMm3": 21712.0,
+                "volumeCm3": 21.712,
+                "eqSphereDiamMm": 34.6126
+              },
+              "3": {
+                "voxelCount": 633,
+                "volumeMm3": 5064.0,
+                "volumeCm3": 5.064,
+                "eqSphereDiamMm": 21.3058
+              },
+              "5": {
+                "voxelCount": 2026,
+                "volumeMm3": 16208.0,
+                "volumeCm3": 16.208,
+                "eqSphereDiamMm": 31.3986
+              }
+            },
+            "regions": {
+              "WT": {
+                "voxelCount": 3347,
+                "volumeMm3": 26776.0,
+                "volumeCm3": 26.776,
+                "eqSphereDiamMm": 37.1178
+              },
+              "TC": {
+                "voxelCount": 633,
+                "volumeMm3": 5064.0,
+                "volumeCm3": 5.064,
+                "eqSphereDiamMm": 21.3058
+              },
+              "ET": {
+                "voxelCount": 633,
+                "volumeMm3": 5064.0,
+                "volumeCm3": 5.064,
+                "eqSphereDiamMm": 21.3058
+              },
+              "RC": {
+                "voxelCount": 2026,
+                "volumeMm3": 16208.0,
+                "volumeCm3": 16.208,
+                "eqSphereDiamMm": 31.3986
+              },
+              "nonCE": {
+                "voxelCount": 2714,
+                "volumeMm3": 21712.0,
+                "volumeCm3": 21.712,
+                "eqSphereDiamMm": 34.6126
+              }
+            },
+            "rano2d": {
+              "region": "ET",
+              "d1Mm": 24.3607,
+              "d2Mm": 21.6774,
+              "spdMm2": 528.0762,
+              "bestSliceZ": 27,
+              "measurable": true,
+              "majorLine": {
+                "x1": 39.0,
+                "y1": 25.0,
+                "x2": 34.0,
+                "y2": 35.0
+              },
+              "minorLine": {
+                "x1": 41.9,
+                "y1": 31.2,
+                "x2": 33.1,
+                "y2": 26.8
+              },
+              "sliceAreaMm2": 240.0,
+              "componentCountOnSlice": 1
+            }
+          }
+        },
+        "ranoResect": {
+          "preCeCm3": 17.896,
+          "preNonCeCm3": 33.568,
+          "preWtCm3": 51.464,
+          "residualCeCm3": 0.68,
+          "residualNonCeCm3": 12.28,
+          "residualWtCm3": 12.96,
+          "cavityCm3": 20.424,
+          "ceEorPct": 96.2003,
+          "nonCeEorPct": 63.4175,
+          "ranoClass": "Class 2B",
+          "ranoClassName": "Near-Total CE Resection"
+        },
+        "rano2": {
+          "baselineSpdMm2": 139.598,
+          "baselineVolCm3": 0.68,
+          "followupSpdMm2": 528.0762,
+          "followupVolCm3": 5.064,
+          "spdChangeVsNadirPct": 278.2835,
+          "volChangeVsNadirPct": 644.7059,
+          "categoryPost12Weeks": "PD",
+          "categoryWithin12WeeksPostRT": "PD",
+          "categoryWithin12WeeksPostRTClinicallyStable": "Preliminary PD (Confirm >=4 wks)"
+        },
+        "aiEvaluation": {
+          "regions": {
+            "ET": {
+              "tp": 1993,
+              "fp": 265,
+              "fn": 244,
+              "gtCm3": 17.896,
+              "predCm3": 18.064,
+              "dice": 0.886763,
+              "iou": 0.796563,
+              "hd95Mm": 2.0,
+              "assdMm": 0.7805,
+              "sensitivity": 0.890925,
+              "precision": 0.88264,
+              "rvePct": 0.9388,
+              "bothEmpty": false
+            },
+            "TC": {
+              "tp": 2751,
+              "fp": 233,
+              "fn": 223,
+              "gtCm3": 23.792,
+              "predCm3": 23.872,
+              "dice": 0.923464,
+              "iou": 0.857811,
+              "hd95Mm": 2.8284,
+              "assdMm": 0.9373,
+              "sensitivity": 0.925017,
+              "precision": 0.921917,
+              "rvePct": 0.3362,
+              "bothEmpty": false
+            },
+            "WT": {
+              "tp": 5858,
+              "fp": 582,
+              "fn": 575,
+              "gtCm3": 51.464,
+              "predCm3": 51.52,
+              "dice": 0.910122,
+              "iou": 0.835068,
+              "hd95Mm": 4.4721,
+              "assdMm": 1.0092,
+              "sensitivity": 0.910617,
+              "precision": 0.909627,
+              "rvePct": 0.1088,
+              "bothEmpty": false
+            },
+            "RC": {
+              "tp": 0,
+              "fp": 0,
+              "fn": 0,
+              "gtCm3": 0.0,
+              "predCm3": 0.0,
+              "dice": 1.0,
+              "iou": 1.0,
+              "hd95Mm": 0.0,
+              "assdMm": 0.0,
+              "sensitivity": 1.0,
+              "precision": 1.0,
+              "rvePct": 0.0,
+              "bothEmpty": true
+            }
+          },
+          "summary": {
+            "meanDiceActive": 0.906783,
+            "meanHd95Mm": 3.1002
+          }
+        }
+      }
+    }
+  ]
+}
