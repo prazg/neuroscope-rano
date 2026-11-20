@@ -74,7 +74,7 @@ Benchmarks predicted AI segmentation masks against ground truth across `ET`, `TC
 
 NeuroScope-RANO requires **no build step, no Node.js installation, and no Python packages**. Because browsers restrict ES Module imports and `fetch()` calls over the `file://` protocol, serve the repository over HTTP locally or via GitHub Pages.
 
-### Option 1: Run Locally with Python
+### Run Locally with Python
 
 ```bash
 git clone https://github.com/<your-org>/neuroscope-rano.git
@@ -83,15 +83,6 @@ python -m http.server 8000
 ```
 
 Open **[http://localhost:8000](http://localhost:8000)** in any modern browser (Chrome, Edge, Firefox, or Safari supporting ES Modules and `DecompressionStream`). The built-in synthetic glioblastoma case (`case01`) loads automatically; use the header upload buttons or drag-and-drop to inspect your own local `.nii` / `.nii.gz` volumes.
-
-### Option 2: Deploy Statically to GitHub Pages
-
-This repository includes a production GitHub Actions workflow at [`.github/workflows/pages.yml`](.github/workflows/pages.yml) that deploys the static repository root directly to GitHub Pages:
-
-1. Fork or push this repository to GitHub with `main` as the default branch.
-2. In your GitHub repository, open **Settings → Pages → Build and deployment**.
-3. Under **Source**, select **GitHub Actions**.
-4. Push to `main` (or manually trigger **Actions → Deploy NeuroScope-RANO to GitHub Pages → Run workflow**). Your workstation will publish at `https://<username>.github.io/<repository>/`.
 
 ### Verification & Mathematical Testing
 
@@ -146,14 +137,14 @@ If you use **NeuroScope-RANO** in academic research, manuscripts, or AI segmenta
 ```bibtex
 @software{neuroscope_rano_2026,
   title   = {NeuroScope-RANO: Zero-Upload Browser-Local Neuro-Oncology Volumetrics, RANO-Resect, RANO 2.0, and AI Segmentation QA Workstation},
-  author  = {{Open Neuro-Oncology Contributors}},
+  author  = {{Prajwal Ghimire}},
   year    = {2026},
   version = {1.0.0},
   license = {MIT}
 }
 ```
 
-NeuroScope-RANO is released under the [MIT License](LICENSE) (`Copyright (c) 2026 Open Neuro-Oncology Contributors`).
+NeuroScope-RANO is released under the [MIT License](LICENSE) (`Copyright (c) 2026 Prajwal Ghimire`).
 
 ---
 
