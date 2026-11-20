@@ -88,10 +88,85 @@ export const ERROR_COLORS = Object.freeze({
  * @returns {0 | 1 | 2 | 3 | 5}
  */
 export function normalizeLabel(v) {
+  if (!Number.isFinite(v)) return 0;
   const r = Math.round(v);
   if (r === 4) return 3;
   if (r === 1 || r === 2 || r === 3 || r === 5) return r;
   return 0;
+}
+
+/**
+ * Build a 256x3 RGB lookup table by piecewise linear interpolation across control stops.
+ * @param {Array<[number, number, number, number]>} stops - [t (0..1), R, G, B]
+ * @returns {Uint8Array}
+ */
+function buildColormapLut(stops) {
+  const lut = new Uint8Array(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    let s0 = stops[0];
+    let s1 = stops[stops.length - 1];
+    for (let k = 0; k < stops.length - 1; k++) {
+      if (t >= stops[k][0] && t <= stops[k + 1][0]) {
+        s0 = stops[k];
+        s1 = stops[k + 1];
+        break;
+      }
+    }
+    const span = Math.max(1e-6, s1[0] - s0[0]);
+    const u = Math.max(0, Math.min(1, (t - s0[0]) / span));
+    const o = i * 3;
+    lut[o] = Math.round(s0[1] + (s1[1] - s0[1]) * u);
+    lut[o + 1] = Math.round(s0[2] + (s1[2] - s0[2]) * u);
+    lut[o + 2] = Math.round(s0[3] + (s1[3] - s0[3]) * u);
+  }
+  return lut;
+}
+
+export const COLORMAPS = Object.freeze({
+  grayscale: Object.freeze({
+    id: 'grayscale',
+    name: 'Grayscale',
+    shortName: 'Gray',
+  }),
+  hot_metal: Object.freeze({
+    id: 'hot_metal',
+    name: 'Hot Metal',
+    shortName: 'Hot Metal',
+  }),
+  cool_bone: Object.freeze({
+    id: 'cool_bone',
+    name: 'Cool Bone',
+    shortName: 'Cool Bone',
+  }),
+});
+
+const COLORMAP_LUTS = Object.freeze({
+  grayscale: buildColormapLut([
+    [0.0, 0, 0, 0],
+    [1.0, 255, 255, 255],
+  ]),
+  hot_metal: buildColormapLut([
+    [0.0, 0, 0, 0],
+    [0.24, 108, 10, 26],
+    [0.50, 218, 52, 14],
+    [0.76, 250, 174, 24],
+    [1.0, 255, 252, 226],
+  ]),
+  cool_bone: buildColormapLut([
+    [0.0, 0, 0, 0],
+    [0.28, 28, 54, 86],
+    [0.56, 84, 142, 184],
+    [0.82, 174, 216, 238],
+    [1.0, 248, 253, 255],
+  ]),
+});
+
+function resolveColormapId(name) {
+  const key = String(name || '').toLowerCase().trim();
+  if (key === 'hot_metal' || key === 'hot' || key === 'hotmetal') return 'hot_metal';
+  if (key === 'cool_bone' || key === 'bone' || key === 'coolbone') return 'cool_bone';
+  return 'grayscale';
 }
 
 // Fast lookup tables indexed by canonical label (0..5) and error code (0..3)
@@ -154,6 +229,7 @@ export class NeuroViewer {
 
     // Callbacks
     this._onCrosshairChange = typeof options.onCrosshairChange === 'function' ? options.onCrosshairChange : null;
+    this._onCursorChange = typeof options.onCursorChange === 'function' ? options.onCursorChange : null;
     this._onWindowLevelChange = typeof options.onWindowLevelChange === 'function' ? options.onWindowLevelChange : null;
     this._sliceListeners = [];
     if (typeof options.onSliceChange === 'function') {
@@ -161,6 +237,7 @@ export class NeuroViewer {
     }
 
     // Visual & display options
+    this._colormap = resolveColormapId(options.colormap);
     this._showCrosshairs = options.showCrosshairs !== undefined ? Boolean(options.showCrosshairs) : true;
     this._showCalipers = options.showCalipers !== undefined ? Boolean(options.showCalipers) : true;
     this._showOrientationLabels = options.showOrientationLabels !== undefined ? Boolean(options.showOrientationLabels) : true;
@@ -682,6 +759,26 @@ export class NeuroViewer {
   }
 
   /**
+   * Switch MRI base intensity colormap ('grayscale' | 'hot_metal' | 'cool_bone').
+   * @param {string} colormapId
+   */
+  setColormap(colormapId) {
+    if (this._destroyed) return;
+    const next = resolveColormapId(colormapId);
+    if (this._colormap === next) return;
+    this._colormap = next;
+    this._scheduleRender(true, this._mode3d === 'mip');
+  }
+
+  /**
+   * Return active MRI base colormap ID.
+   * @returns {'grayscale' | 'hot_metal' | 'cool_bone'}
+   */
+  getColormap() {
+    return this._colormap;
+  }
+
+  /**
    * Update 3D orbital camera angles in radians.
    * @param {number} yawRad
    * @param {number} pitchRad
@@ -701,6 +798,7 @@ export class NeuroViewer {
       ix: this._ix,
       iy: this._iy,
       iz: this._iz,
+      colormap: this._colormap,
       windowWidth: this._windowWidth,
       windowLevel: this._windowLevel,
       autoWindowWidth: this._autoWindowWidth,
@@ -858,7 +956,15 @@ export class NeuroViewer {
     };
 
     const onPointerMove = (e) => {
-      if (!dragMode || e.pointerId !== activePointerId || !this._volume) return;
+      if (!this._volume) return;
+      if (!dragMode) {
+        if (this._onCursorChange) {
+          const pos = getLocalPos(e);
+          this._emitHoverFromCanvas(plane, pos.x, pos.y);
+        }
+        return;
+      }
+      if (e.pointerId !== activePointerId) return;
       if (dragMode === 'crosshair') {
         const pos = getLocalPos(e);
         this._updateCrosshairFromCanvas(plane, pos.x, pos.y);
@@ -870,6 +976,12 @@ export class NeuroViewer {
         this._windowLevel = startWL + dy * scale;
         this._scheduleRender(true, this._mode3d === 'mip');
         this._emitWindowLevel();
+      }
+    };
+
+    const onPointerLeave = () => {
+      if (!dragMode && this._onCursorChange) {
+        this._onCursorChange(null);
       }
     };
 
@@ -907,6 +1019,7 @@ export class NeuroViewer {
 
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerleave', onPointerLeave);
     canvas.addEventListener('pointerup', endDrag);
     canvas.addEventListener('pointercancel', endDrag);
     canvas.addEventListener('wheel', onWheel, { passive: false });
@@ -915,6 +1028,7 @@ export class NeuroViewer {
     this._cleanupFns.push(() => {
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('pointerup', endDrag);
       canvas.removeEventListener('pointercancel', endDrag);
       canvas.removeEventListener('wheel', onWheel);
@@ -1159,28 +1273,42 @@ export class NeuroViewer {
   _voxelToMm(ix, iy, iz) {
     const [dx, dy, dz] = this._getPixdim();
     const hdr = this._volume && this._volume.header;
-    if (hdr && hdr.sformCode > 0 && Array.isArray(hdr.sform) && hdr.sform.length === 3) {
-      const r0 = hdr.sform[0];
-      const r1 = hdr.sform[1];
-      const r2 = hdr.sform[2];
-      if (r0 && r1 && r2 && r0.length >= 4 && r1.length >= 4 && r2.length >= 4) {
-        const mag =
-          Math.abs(r0[0]) + Math.abs(r0[1]) + Math.abs(r0[2]) +
-          Math.abs(r1[0]) + Math.abs(r1[1]) + Math.abs(r1[2]) +
-          Math.abs(r2[0]) + Math.abs(r2[1]) + Math.abs(r2[2]);
-        if (Number.isFinite(mag) && mag > 1e-8) {
-          return {
-            mmX: r0[0] * ix + r0[1] * iy + r0[2] * iz + r0[3],
-            mmY: r1[0] * ix + r1[1] * iy + r1[2] * iz + r1[3],
-            mmZ: r2[0] * ix + r2[1] * iy + r2[2] * iz + r2[3],
-          };
-        }
+    const applyAffine = (mat, spaceCode) => {
+      if (!Array.isArray(mat) || mat.length !== 3) return null;
+      const r0 = mat[0];
+      const r1 = mat[1];
+      const r2 = mat[2];
+      if (!r0 || !r1 || !r2 || r0.length < 4 || r1.length < 4 || r2.length < 4) return null;
+      const mag =
+        Math.abs(r0[0]) + Math.abs(r0[1]) + Math.abs(r0[2]) +
+        Math.abs(r1[0]) + Math.abs(r1[1]) + Math.abs(r1[2]) +
+        Math.abs(r2[0]) + Math.abs(r2[1]) + Math.abs(r2[2]);
+      if (!Number.isFinite(mag) || mag <= 1e-8) return null;
+      const coordSpace = spaceCode === 4 ? 'MNI' : spaceCode === 3 ? 'TAL' : 'RAS';
+      return {
+        mmX: r0[0] * ix + r0[1] * iy + r0[2] * iz + r0[3],
+        mmY: r1[0] * ix + r1[1] * iy + r1[2] * iz + r1[3],
+        mmZ: r2[0] * ix + r2[1] * iy + r2[2] * iz + r2[3],
+        coordSpace,
+      };
+    };
+
+    if (hdr) {
+      if (hdr.sformCode > 0) {
+        const res = applyAffine(hdr.sform, hdr.sformCode);
+        if (res) return res;
+      }
+      if (hdr.qformCode > 0 && hdr.qform) {
+        const res = applyAffine(hdr.qform, hdr.qformCode);
+        if (res) return res;
       }
     }
+
     return {
       mmX: ix * dx,
       mmY: iy * dy,
       mmZ: iz * dz,
+      coordSpace: 'MM',
     };
   }
 
@@ -1262,8 +1390,12 @@ export class NeuroViewer {
     }
 
     const binW = (hi - lo) / (BINS - 1);
-    const p1 = lo + binLow * binW;
-    const p995 = lo + binHigh * binW;
+    let p1 = lo + binLow * binW;
+    let p995 = lo + binHigh * binW;
+    if (p995 - p1 < (hi - lo) * 0.02) {
+      p1 = lo;
+      p995 = hi;
+    }
 
     this._p1 = p1;
     this._p995 = p995;
@@ -1271,26 +1403,32 @@ export class NeuroViewer {
     this._autoWindowLevel = 0.5 * (p1 + p995);
   }
 
-  _emitCrosshair() {
-    if (!this._volume) return;
+  _buildVoxelPayload(ix, iy, iz, source = 'crosshair') {
     const [nx, ny] = this._volume.dims;
-    const idx = this._ix + this._iy * nx + this._iz * nx * ny;
-    const { mmX, mmY, mmZ } = this._voxelToMm(this._ix, this._iy, this._iz);
+    const idx = ix + iy * nx + iz * nx * ny;
+    const { mmX, mmY, mmZ, coordSpace } = this._voxelToMm(ix, iy, iz);
     const intensity = Number.isFinite(this._volume.data[idx]) ? this._volume.data[idx] : 0;
     const label = this._maskMatchesVolume() ? this._normMask[idx] : 0;
     const errorCode = this._errorMatchesVolume() ? this._errorVolume[idx] : 0;
 
-    const payload = {
-      ix: this._ix,
-      iy: this._iy,
-      iz: this._iz,
+    return {
+      ix,
+      iy,
+      iz,
       mmX,
       mmY,
       mmZ,
+      coordSpace,
       intensity,
       label,
       errorCode,
+      source,
     };
+  }
+
+  _emitCrosshair() {
+    if (!this._volume) return;
+    const payload = this._buildVoxelPayload(this._ix, this._iy, this._iz, 'crosshair');
 
     if (this._onCrosshairChange) {
       this._onCrosshairChange(payload);
@@ -1298,6 +1436,39 @@ export class NeuroViewer {
     for (const cb of this._sliceListeners) {
       cb(payload);
     }
+  }
+
+  _emitHoverFromCanvas(plane, px, py) {
+    if (!this._onCursorChange || !this._volume) return;
+    const rect = this._viewRects[plane];
+    if (!rect || rect.w <= 0 || rect.h <= 0) {
+      this._onCursorChange(null);
+      return;
+    }
+    const uNorm = (px - rect.x) / rect.w;
+    const vNorm = (py - rect.y) / rect.h;
+    if (uNorm < 0 || uNorm >= 1 || vNorm < 0 || vNorm >= 1) {
+      this._onCursorChange(null);
+      return;
+    }
+
+    const [nx, ny, nz] = this._volume.dims;
+    let ix = this._ix;
+    let iy = this._iy;
+    let iz = this._iz;
+
+    if (plane === 'axial') {
+      ix = (nx - 1) - clamp(Math.floor(uNorm * nx), 0, nx - 1);
+      iy = (ny - 1) - clamp(Math.floor(vNorm * ny), 0, ny - 1);
+    } else if (plane === 'coronal') {
+      ix = (nx - 1) - clamp(Math.floor(uNorm * nx), 0, nx - 1);
+      iz = (nz - 1) - clamp(Math.floor(vNorm * nz), 0, nz - 1);
+    } else if (plane === 'sagittal') {
+      iy = (ny - 1) - clamp(Math.floor(uNorm * ny), 0, ny - 1);
+      iz = (nz - 1) - clamp(Math.floor(vNorm * nz), 0, nz - 1);
+    }
+
+    this._onCursorChange(this._buildVoxelPayload(ix, iy, iz, 'cursor'));
   }
 
   _emitWindowLevel() {
@@ -1448,8 +1619,9 @@ export class NeuroViewer {
     const low = wl - ww * 0.5;
     const invWW = 255.0 / ww;
     const baseOpacity = this._maskOpacity;
+    const baseLut = COLORMAP_LUTS[this._colormap] || COLORMAP_LUTS.grayscale;
 
-    // Pass 1: Fill base grayscale pixels and record visible overlay code per pixel
+    // Pass 1: Fill base MRI pixels (via active colormap LUT) and record visible overlay code per pixel
     if (plane === 'axial') {
       const zOff = this._iz * sliceStride;
       for (let v = 0; v < imgH; v++) {
@@ -1464,11 +1636,12 @@ export class NeuroViewer {
           const val = volData[vIdx];
           let g = (val - low) * invWW;
           g = g <= 0 ? 0 : g >= 255 ? 255 : (g + 0.5) | 0;
+          const lo3 = g * 3;
 
           const o = pIdx * 4;
-          rgba[o] = g;
-          rgba[o + 1] = g;
-          rgba[o + 2] = g;
+          rgba[o] = baseLut[lo3];
+          rgba[o + 1] = baseLut[lo3 + 1];
+          rgba[o + 2] = baseLut[lo3 + 2];
           rgba[o + 3] = 255;
 
           if (overlayData) {
@@ -1493,11 +1666,12 @@ export class NeuroViewer {
           const val = volData[vIdx];
           let g = (val - low) * invWW;
           g = g <= 0 ? 0 : g >= 255 ? 255 : (g + 0.5) | 0;
+          const lo3 = g * 3;
 
           const o = pIdx * 4;
-          rgba[o] = g;
-          rgba[o + 1] = g;
-          rgba[o + 2] = g;
+          rgba[o] = baseLut[lo3];
+          rgba[o + 1] = baseLut[lo3 + 1];
+          rgba[o + 2] = baseLut[lo3 + 2];
           rgba[o + 3] = 255;
 
           if (overlayData) {
@@ -1523,11 +1697,12 @@ export class NeuroViewer {
           const val = volData[vIdx];
           let g = (val - low) * invWW;
           g = g <= 0 ? 0 : g >= 255 ? 255 : (g + 0.5) | 0;
+          const lo3 = g * 3;
 
           const o = pIdx * 4;
-          rgba[o] = g;
-          rgba[o + 1] = g;
-          rgba[o + 2] = g;
+          rgba[o] = baseLut[lo3];
+          rgba[o + 1] = baseLut[lo3 + 1];
+          rgba[o + 2] = baseLut[lo3 + 2];
           rgba[o + 3] = 255;
 
           if (overlayData) {
@@ -1565,10 +1740,9 @@ export class NeuroViewer {
           const a = isEdge ? rimAlpha : baseOpacity;
           const invA = 1.0 - a;
           const o = pIdx * 4;
-          const g = rgba[o];
-          rgba[o] = (g * invA + rgb[0] * a + 0.5) | 0;
-          rgba[o + 1] = (g * invA + rgb[1] * a + 0.5) | 0;
-          rgba[o + 2] = (g * invA + rgb[2] * a + 0.5) | 0;
+          rgba[o] = (rgba[o] * invA + rgb[0] * a + 0.5) | 0;
+          rgba[o + 1] = (rgba[o + 1] * invA + rgb[1] * a + 0.5) | 0;
+          rgba[o + 2] = (rgba[o + 2] * invA + rgb[2] * a + 0.5) | 0;
         }
       }
     }
@@ -2379,6 +2553,8 @@ export class NeuroViewer {
       const solidAlpha = clamp(this._maskOpacity * 1.18, 0, 0.92);
       const edAlphaBase = clamp(this._maskOpacity * 0.56, 0, 0.55);
       const edRGB = LABEL_COLORS[2].rgb;
+      const mipLut = COLORMAP_LUTS[this._colormap] || COLORMAP_LUTS.grayscale;
+      const isGrayMip = this._colormap === 'grayscale';
 
       for (let p = 0; p < len; p++) {
         const o = p * 4;
@@ -2391,10 +2567,18 @@ export class NeuroViewer {
         if (mv > -1e8) {
           let g = (mv - low) * invWW;
           g = g <= 0 ? 0 : g >= 255 ? 255 : g;
-          // Subtle cool clinical tint on radiographic MIP
-          baseR = g * 0.92;
-          baseG = g * 0.96;
-          baseB = Math.min(255, g * 1.03);
+          if (isGrayMip) {
+            // Subtle cool clinical tint on radiographic grayscale MIP
+            baseR = g * 0.92;
+            baseG = g * 0.96;
+            baseB = Math.min(255, g * 1.03);
+          } else {
+            const gi = (g + 0.5) | 0;
+            const lo3 = gi * 3;
+            baseR = mipLut[lo3];
+            baseG = mipLut[lo3 + 1];
+            baseB = mipLut[lo3 + 2];
+          }
           baseA = clamp(g * 1.15, 25, 255);
         }
 

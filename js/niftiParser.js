@@ -143,9 +143,81 @@ function readNullTerminatedAscii(bytes, offset, maxLength) {
   }
   let out = '';
   for (let i = offset; i < end; i++) {
-    out += String.fromCharCode(bytes[i]);
+    const ch = bytes[i];
+    out += ch >= 0x20 && ch <= 0x7e ? String.fromCharCode(ch) : ' ';
   }
   return out;
+}
+
+/**
+ * Build a 3x4 NIfTI-1 Method 2 spatial affine matrix from quaternion parameters.
+ * @param {number} qb
+ * @param {number} qc
+ * @param {number} qd
+ * @param {number} qx
+ * @param {number} qy
+ * @param {number} qz
+ * @param {number} dx
+ * @param {number} dy
+ * @param {number} dz
+ * @param {number} qfac - +1 or -1 handedness factor from pixdim[0].
+ * @returns {[[number, number, number, number], [number, number, number, number], [number, number, number, number]]}
+ */
+function buildQformMatrix(qb, qc, qd, qx, qy, qz, dx, dy, dz, qfac) {
+  let b = Number.isFinite(qb) ? qb : 0;
+  let c = Number.isFinite(qc) ? qc : 0;
+  let d = Number.isFinite(qd) ? qd : 0;
+  const ox = Number.isFinite(qx) ? qx : 0;
+  const oy = Number.isFinite(qy) ? qy : 0;
+  const oz = Number.isFinite(qz) ? qz : 0;
+
+  let a = 1.0 - (b * b + c * c + d * d);
+  if (a < 1e-7) {
+    const len = Math.hypot(b, c, d);
+    if (len > 1e-12) {
+      b /= len;
+      c /= len;
+      d /= len;
+    } else {
+      b = 0;
+      c = 0;
+      d = 0;
+    }
+    a = 0.0;
+  } else {
+    a = Math.sqrt(a);
+  }
+
+  const dzFac = dz * (qfac < 0 ? -1.0 : 1.0);
+  const r00 = a * a + b * b - c * c - d * d;
+  const r01 = 2.0 * (b * c - a * d);
+  const r02 = 2.0 * (b * d + a * c);
+  const r10 = 2.0 * (b * c + a * d);
+  const r11 = a * a + c * c - b * b - d * d;
+  const r12 = 2.0 * (c * d - a * b);
+  const r20 = 2.0 * (b * d - a * c);
+  const r21 = 2.0 * (c * d + a * b);
+  const r22 = a * a + d * d - b * b - c * c;
+
+  return [
+    [r00 * dx, r01 * dy, r02 * dzFac, ox],
+    [r10 * dx, r11 * dy, r12 * dzFac, oy],
+    [r20 * dx, r21 * dy, r22 * dzFac, oz],
+  ];
+}
+
+/**
+ * Map NIfTI-1 xform_code (sform_code / qform_code) to a short coordinate space label.
+ * @param {number} sformCode
+ * @param {number} qformCode
+ * @returns {'MNI' | 'TAL' | 'RAS' | 'MM'}
+ */
+function resolveCoordSpace(sformCode, qformCode) {
+  const code = sformCode > 0 ? sformCode : qformCode;
+  if (code === 4) return 'MNI';
+  if (code === 3) return 'TAL';
+  if (code === 1 || code === 2) return 'RAS';
+  return 'MM';
 }
 
 /**
@@ -380,7 +452,9 @@ export async function parseNiftiBuffer(arrayBuffer) {
     );
   }
 
-  // Read physical voxel spacings pixdim[1..3] at offsets 80, 84, 88 (float32)
+  // Read qfac (pixdim[0] at offset 76) and physical voxel spacings pixdim[1..3] at offsets 80, 84, 88 (float32)
+  const rawQfac = headerView.getFloat32(76, littleEndian);
+  const qfac = rawQfac < 0 ? -1.0 : 1.0;
   const dx = sanitizePixdim(headerView.getFloat32(80, littleEndian));
   const dy = sanitizePixdim(headerView.getFloat32(84, littleEndian));
   const dz = sanitizePixdim(headerView.getFloat32(88, littleEndian));
@@ -398,10 +472,20 @@ export async function parseNiftiBuffer(arrayBuffer) {
   const sclSlope = headerView.getFloat32(112, littleEndian);
   const sclInter = headerView.getFloat32(116, littleEndian);
 
-  // Read descrip (148..227), qform_code (252), sform_code (254), and srow_x/y/z (280..327)
+  // Read descrip (148..227), qform_code (252), sform_code (254), quatern/qoffset (256..279), and srow_x/y/z (280..327)
   const descrip = readNullTerminatedAscii(bytes, 148, 80).trim();
   const qformCode = headerView.getInt16(252, littleEndian);
   const sformCode = headerView.getInt16(254, littleEndian);
+  const quaternB = headerView.getFloat32(256, littleEndian);
+  const quaternC = headerView.getFloat32(260, littleEndian);
+  const quaternD = headerView.getFloat32(264, littleEndian);
+  const qoffsetX = headerView.getFloat32(268, littleEndian);
+  const qoffsetY = headerView.getFloat32(272, littleEndian);
+  const qoffsetZ = headerView.getFloat32(276, littleEndian);
+  const qform = qformCode > 0
+    ? buildQformMatrix(quaternB, quaternC, quaternD, qoffsetX, qoffsetY, qoffsetZ, dx, dy, dz, qfac)
+    : null;
+  const coordSpace = resolveCoordSpace(sformCode, qformCode);
   /** @type {[[number, number, number, number], [number, number, number, number], [number, number, number, number]]} */
   const sform = [
     [
@@ -463,7 +547,12 @@ export async function parseNiftiBuffer(arrayBuffer) {
       sclInter,
       qformCode,
       sformCode,
+      qfac,
+      quatern: [quaternB, quaternC, quaternD],
+      qoffset: [qoffsetX, qoffsetY, qoffsetZ],
+      qform,
       sform,
+      coordSpace,
       descrip,
       nt,
     },

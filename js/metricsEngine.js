@@ -1789,7 +1789,7 @@ function computeSurfaceDistancesForRegion(gtNorm, predNorm, region, nx, ny, dx, 
 
   const nGt = surfGt.length;
   const nPred = surfPred.length;
-  if (nGt === 0 && nPred === 0) {
+  if (nGt === 0 || nPred === 0) {
     return { hd95Mm: 0, assdMm: 0 };
   }
 

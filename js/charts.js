@@ -37,11 +37,12 @@ function svgEl(tag, attrs = {}, text) {
  * @returns {string}
  */
 function escHtml(str) {
-  return String(str)
+  return String(str ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -925,7 +926,7 @@ export function renderAiBenchmarkChart(container, evalResult, activeRegion = 'ET
     bindSvgTooltip(hit, tip, () => {
       if (m.bothEmpty) {
         return `
-          <div class="tt-title">${region} — Absent in GT &amp; Pred</div>
+          <div class="tt-title">${escHtml(region)} — Absent in GT &amp; Pred</div>
           <div class="tt-row"><span>Dice / IoU:</span><strong>1.000 (Both Empty)</strong></div>
         `;
       }
@@ -933,7 +934,7 @@ export function renderAiBenchmarkChart(container, evalResult, activeRegion = 'ET
       const assd = m.assdMm === null ? 'N/A' : `${m.assdMm.toFixed(2)} mm`;
       const rve = m.rvePct === null ? 'N/A' : `${m.rvePct >= 0 ? '+' : ''}${m.rvePct.toFixed(1)}%`;
       return `
-        <div class="tt-title">${region} Region QA Metrics</div>
+        <div class="tt-title">${escHtml(region)} Region QA Metrics</div>
         <div class="tt-row"><span style="color:#22c55e">Dice:</span><strong>${m.dice.toFixed(3)}</strong></div>
         <div class="tt-row"><span style="color:#38bdf8">IoU:</span><strong>${m.iou.toFixed(3)}</strong></div>
         <div class="tt-row"><span style="color:#2dd4bf">Sens / Prec:</span><strong>${m.sensitivity.toFixed(3)} / ${m.precision.toFixed(3)}</strong></div>
@@ -1020,7 +1021,7 @@ export function renderCompartmentBar(container, volumetrics) {
       fill: seg.color,
     });
     bindSvgTooltip(rect, tip, () => `
-      <div class="tt-title">${escHtml(seg.name)} (${seg.code})</div>
+      <div class="tt-title">${escHtml(seg.name)} (${escHtml(seg.code)})</div>
       <div class="tt-row"><span>Volume:</span><strong>${seg.vol.toFixed(2)} cm³</strong></div>
       <div class="tt-row"><span>Share:</span><strong>${pct.toFixed(1)}%</strong></div>
     `);

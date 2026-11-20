@@ -21,7 +21,7 @@ import {
   buildErrorVolume,
 } from './metricsEngine.js';
 
-import { NeuroViewer } from './viewer.js';
+import { NeuroViewer, COLORMAPS } from './viewer.js';
 
 import {
   renderLongitudinalChart,
@@ -41,7 +41,8 @@ function escHtml(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function fmtNum(val, decimals = 2, fallback = '–') {
@@ -136,9 +137,13 @@ const state = {
   aiErrorOverlayOn: false,
 
   // Viewer control flags
+  colormap: 'grayscale', // 'grayscale' | 'hot_metal' | 'cool_bone'
   overlayMode: 'mask', // 'mask' | 'error' | 'none'
   wlSyncingFromViewer: false,
   customScanCounter: 1,
+  lastCrosshairPayload: null,
+  activeModalId: null,
+  modalReturnFocus: null,
 };
 
 /** @type {NeuroViewer | null} */
@@ -231,12 +236,14 @@ function initViewer() {
       mip3d: $('canvas-3d'),
     },
     {
+      colormap: state.colormap,
       showCrosshairs: true,
       showCalipers: true,
       showOrientationLabels: true,
       maskOpacity: 0.55,
       mode3d: 'tumor_surface',
       onCrosshairChange: handleCrosshairChange,
+      onCursorChange: handleCursorHover,
       onWindowLevelChange: handleViewerWLChange,
     }
   );
@@ -266,10 +273,61 @@ function getActiveRano2D(volumetrics = state.volumetrics) {
   return volumetrics.rano2d || null;
 }
 
+function renderTelemetryPill(payload) {
+  if (!payload) return;
+  const { ix, iy, iz, mmX, mmY, mmZ, coordSpace, intensity, label, errorCode, source } = payload;
+
+  const pill = $('live-telemetry-pill');
+  const modeBadge = $('tele-mode-badge');
+  const teleVox = $('tele-voxel');
+  const teleCoordTag = $('tele-coord-tag');
+  const teleMm = $('tele-mm');
+  const teleInt = $('tele-intensity');
+  const teleDot = $('tele-label-dot');
+  const teleTxt = $('tele-label-text');
+
+  const isHover = source === 'cursor';
+  if (pill) pill.classList.toggle('is-cursor-hover', isHover);
+  if (modeBadge) modeBadge.textContent = isHover ? 'CURSOR' : 'CROSSHAIR';
+  if (teleVox) teleVox.textContent = `(${ix}, ${iy}, ${iz})`;
+  if (teleCoordTag) {
+    const space = coordSpace === 'MNI' ? 'MNI (mm)' : coordSpace === 'TAL' ? 'TAL (mm)' : coordSpace === 'MM' ? 'Grid (mm)' : 'RAS (mm)';
+    teleCoordTag.textContent = space;
+  }
+  if (teleMm) teleMm.textContent = `(${mmX.toFixed(1)}, ${mmY.toFixed(1)}, ${mmZ.toFixed(1)})`;
+  if (teleInt) teleInt.textContent = Number.isFinite(intensity) ? intensity.toFixed(1) : '–';
+
+  if (teleDot && teleTxt) {
+    if (state.overlayMode === 'error' && state.aiEvalResult) {
+      if (errorCode && ERROR_META[errorCode]) {
+        const meta = ERROR_META[errorCode];
+        teleDot.style.setProperty('--swatch', meta.color);
+        teleTxt.textContent = `${meta.code} — ${meta.name} (${state.aiActiveRegion})`;
+      } else {
+        teleDot.style.setProperty('--swatch', '#475569');
+        teleTxt.textContent = `TN — Background (${state.aiActiveRegion})`;
+      }
+    } else if (label && LABEL_META[label]) {
+      const meta = LABEL_META[label];
+      teleDot.style.setProperty('--swatch', meta.color);
+      teleTxt.textContent = `${label} ${meta.code} — ${meta.name}`;
+    } else {
+      teleDot.style.setProperty('--swatch', '#475569');
+      teleTxt.textContent = '0 — Background / Parenchyma';
+    }
+  }
+}
+
+function handleCursorHover(payload) {
+  if (!state.baseVol) return;
+  renderTelemetryPill(payload || state.lastCrosshairPayload);
+}
+
 function handleCrosshairChange(payload) {
   if (!state.baseVol) return;
   const [nx, ny, nz] = state.baseVol.dims;
-  const { ix, iy, iz, mmX, mmY, mmZ, intensity, label, errorCode } = payload;
+  const { ix, iy, iz } = payload;
+  state.lastCrosshairPayload = payload;
 
   // Update viewport slice sliders & badges
   const sz = $('slider-slice-z');
@@ -295,36 +353,7 @@ function handleCrosshairChange(payload) {
     ranoBadge.classList.toggle('hidden', !onBestSlice);
   }
 
-  // Telemetry strip
-  const teleVox = $('tele-voxel');
-  const teleMm = $('tele-mm');
-  const teleInt = $('tele-intensity');
-  const teleDot = $('tele-label-dot');
-  const teleTxt = $('tele-label-text');
-
-  if (teleVox) teleVox.textContent = `(${ix}, ${iy}, ${iz})`;
-  if (teleMm) teleMm.textContent = `(${mmX.toFixed(1)}, ${mmY.toFixed(1)}, ${mmZ.toFixed(1)})`;
-  if (teleInt) teleInt.textContent = Number.isFinite(intensity) ? intensity.toFixed(1) : '–';
-
-  if (teleDot && teleTxt) {
-    if (state.overlayMode === 'error' && state.aiEvalResult) {
-      if (errorCode && ERROR_META[errorCode]) {
-        const meta = ERROR_META[errorCode];
-        teleDot.style.setProperty('--swatch', meta.color);
-        teleTxt.textContent = `${meta.code} — ${meta.name} (${state.aiActiveRegion})`;
-      } else {
-        teleDot.style.setProperty('--swatch', '#475569');
-        teleTxt.textContent = `TN — Background (${state.aiActiveRegion})`;
-      }
-    } else if (label && LABEL_META[label]) {
-      const meta = LABEL_META[label];
-      teleDot.style.setProperty('--swatch', meta.color);
-      teleTxt.textContent = `${label} ${meta.code} — ${meta.name}`;
-    } else {
-      teleDot.style.setProperty('--swatch', '#475569');
-      teleTxt.textContent = '0 — Background / Parenchyma';
-    }
-  }
+  renderTelemetryPill(payload);
 }
 
 function configureWLSlidersForVolume(vol) {
@@ -408,6 +437,19 @@ function updateVolumeMetaUI() {
   }
 }
 
+function setColormapUI(colormapId) {
+  const validId = COLORMAPS[colormapId] ? colormapId : 'grayscale';
+  state.colormap = validId;
+  if (viewer) {
+    viewer.setColormap(validId);
+  }
+  document.querySelectorAll('button.seg-btn[data-colormap]').forEach((btn) => {
+    const isActive = btn.dataset.colormap === validId;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-pressed', String(isActive));
+  });
+}
+
 function setOverlayModeUI(mode) {
   state.overlayMode = mode;
   state.aiErrorOverlayOn = mode === 'error';
@@ -417,7 +459,9 @@ function setOverlayModeUI(mode) {
   }
 
   document.querySelectorAll('button.seg-btn[data-overlay-mode]').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.overlayMode === mode);
+    const isActive = btn.dataset.overlayMode === mode;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-pressed', String(isActive));
   });
 
   const aiBtn = $('btn-ai-toggle-error-overlay');
@@ -439,12 +483,14 @@ function setOverlayModeUI(mode) {
   }
 }
 
-function setActiveTab(tabId) {
+function setActiveTab(tabId, focusTab = false) {
   state.activeTab = tabId;
   document.querySelectorAll('button.tab-btn[data-tab]').forEach((btn) => {
     const isActive = btn.dataset.tab === tabId;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-selected', String(isActive));
+    btn.setAttribute('tabindex', isActive ? '0' : '-1');
+    if (isActive && focusTab) btn.focus();
   });
   document.querySelectorAll('.tab-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `panel-${tabId}`);
@@ -718,17 +764,17 @@ function renderVolumetricsTab() {
             ? `${((m.volumeCm3 / wtVol) * 100).toFixed(1)}%`
             : '0.0%';
         const centroidCell = m.centroid
-          ? `<button type="button" class="centroid-btn" data-cx="${m.centroid[0].toFixed(2)}" data-cy="${m.centroid[1].toFixed(2)}" data-cz="${m.centroid[2].toFixed(2)}" title="Jump crosshair to ${r.label} centroid">(${Math.round(m.centroid[0])},${Math.round(m.centroid[1])},${Math.round(m.centroid[2])})</button>`
+          ? `<button type="button" class="centroid-btn" data-cx="${m.centroid[0].toFixed(2)}" data-cy="${m.centroid[1].toFixed(2)}" data-cz="${m.centroid[2].toFixed(2)}" title="Jump crosshair to ${escHtml(r.label)} centroid">(${Math.round(m.centroid[0])},${Math.round(m.centroid[1])},${Math.round(m.centroid[2])})</button>`
           : '<span class="mono" style="color:#64748b">–</span>';
 
         return `
           <tr class="${empty ? 'muted-row' : ''}">
             <td>
               <div class="region-cell">
-                <span class="swatch" style="--swatch:${r.color}"></span>
-                <span>${r.label}</span>
+                <span class="swatch" style="--swatch:${escHtml(r.color)}"></span>
+                <span>${escHtml(r.label)}</span>
               </div>
-              <div class="region-sub">${r.sub}</div>
+              <div class="region-sub">${escHtml(r.sub)}</div>
             </td>
             <td class="num mono">${m.volumeCm3.toFixed(2)}</td>
             <td class="num mono">${pctStr}</td>
@@ -855,10 +901,10 @@ function renderResectLegend(activeClass) {
       const isActive = tier === activeClass;
       const isExpanded = tier === state.expandedResectTier;
       return `
-        <button type="button" class="resect-item ${isActive ? 'is-active' : ''} ${isExpanded ? 'is-expanded' : ''}" data-resect-tier="${tier}">
+        <button type="button" class="resect-item ${isActive ? 'is-active' : ''} ${isExpanded ? 'is-expanded' : ''}" data-resect-tier="${escHtml(tier)}" aria-expanded="${String(isActive || isExpanded)}">
           <div class="resect-item-top">
             <span class="resect-item-title">
-              <span class="resect-tier-code">${meta.ranoClass}</span>
+              <span class="resect-tier-code">${escHtml(meta.ranoClass)}</span>
               <span>${escHtml(meta.name)}</span>
             </span>
             ${isActive ? '<span class="resect-active-tag">✓ Matched</span>' : '<span style="font-size:10px;color:#64748b">Details ▾</span>'}
@@ -1236,7 +1282,7 @@ function renderAiTab() {
         state.aiPredVol &&
         !validateMatchingGeometry(state.aiGtVol, state.aiPredVol).dimsMatch;
       tbody.innerHTML = hasMismatch
-        ? `<tr><td colspan="7" class="empty-cell">Ground Truth (${state.aiGtVol.dims.join('×')}) and AI Prediction (${state.aiPredVol.dims.join('×')}) dimensions do not match — load a matching prediction mask to evaluate.</td></tr>`
+        ? `<tr><td colspan="7" class="empty-cell">Ground Truth (${escHtml(state.aiGtVol.dims.join('×'))}) and AI Prediction (${escHtml(state.aiPredVol.dims.join('×'))}) dimensions do not match — load a matching prediction mask to evaluate.</td></tr>`
         : '<tr><td colspan="7" class="empty-cell">Load Ground Truth and AI Prediction masks to evaluate.</td></tr>';
     }
     return;
@@ -1294,13 +1340,13 @@ function renderAiTab() {
         const rm = res.regions[item.key];
         const isSel = item.key === state.aiActiveRegion;
         return `
-          <tr class="clickable-row ${isSel ? 'selected-row' : ''} ${rm.bothEmpty ? 'muted-row' : ''}" data-ai-region="${item.key}">
+          <tr class="clickable-row ${isSel ? 'selected-row' : ''} ${rm.bothEmpty ? 'muted-row' : ''}" tabindex="0" data-ai-region="${escHtml(item.key)}" aria-label="Select ${escHtml(item.key)} (${escHtml(item.desc)}) region">
             <td>
               <div class="region-cell">
-                <span class="swatch" style="--swatch:${item.color}"></span>
-                <span>${item.key}</span>
+                <span class="swatch" style="--swatch:${escHtml(item.color)}"></span>
+                <span>${escHtml(item.key)}</span>
               </div>
-              <div class="region-sub">${item.desc}</div>
+              <div class="region-sub">${escHtml(item.desc)}</div>
             </td>
             <td class="num mono">${rm.bothEmpty ? '–' : rm.dice.toFixed(3)}</td>
             <td class="num mono">${rm.bothEmpty ? '–' : rm.iou.toFixed(3)}</td>
@@ -1390,12 +1436,14 @@ function hydrateBackgroundSampleClinicalModules() {
         fetchCachedNifti(fuTp.mask),
       ]);
 
-      // Populate EOR & RANO-Resect (Pre-Op GT vs Post-Op Mask)
-      state.eorPreVol = preMask;
-      state.eorPreName = preTp.mask;
-      state.eorPostVol = postMask;
-      state.eorPostName = postTp.mask;
-      recomputeEor();
+      // Populate EOR & RANO-Resect (Pre-Op GT vs Post-Op Mask) only if user hasn't already loaded custom EOR masks
+      if (!state.eorPreVol && !state.eorPostVol) {
+        state.eorPreVol = preMask;
+        state.eorPreName = preTp.mask;
+        state.eorPostVol = postMask;
+        state.eorPostName = postTp.mask;
+        recomputeEor();
+      }
 
       // Compute exact live volumetrics + 2D SPD from all 3 sample masks for Longitudinal RANO 2.0
       const preVolm = computeVolumetrics(preMask);
@@ -1450,8 +1498,10 @@ function hydrateBackgroundSampleClinicalModules() {
         },
       ];
 
-      state.longitudinalTimepoints = buildDefaultLongitudinalSeries();
-      recomputeRano2();
+      if (state.longitudinalTimepoints.length === 0) {
+        state.longitudinalTimepoints = buildDefaultLongitudinalSeries();
+        recomputeRano2();
+      }
     } catch (err) {
       backgroundHydrationPromise = null;
       console.error('Background sample hydration failed:', err);
@@ -1589,6 +1639,7 @@ async function handleLocalFileLoad(file, slot) {
     const vol = await loadNiftiFile(file);
 
     if (slot === 'mri') {
+      setActivePresetUI('custom');
       setActiveTimepointPillUI('custom');
       mountViewerVolumes({
         baseVol: vol,
@@ -1599,6 +1650,8 @@ async function handleLocalFileLoad(file, slot) {
       });
       showToast(`Loaded Base MRI "${file.name}" (${vol.dims.join('×')}).`, 'success');
     } else if (slot === 'mask') {
+      setActivePresetUI('custom');
+      const wasErrorOverlay = state.overlayMode === 'error';
       mountViewerVolumes({
         maskVol: vol,
         maskName: file.name,
@@ -1608,7 +1661,7 @@ async function handleLocalFileLoad(file, slot) {
       state.aiGtVol = vol;
       state.aiGtName = file.name;
       state.aiSourceTag = 'custom';
-      recomputeAiEvaluation({ quietOnMismatch: state.activeTab !== 'ai' });
+      recomputeAiEvaluation({ quietOnMismatch: state.activeTab !== 'ai' && !wasErrorOverlay });
       showToast(`Loaded Primary Mask "${file.name}".`, 'success');
     } else if (slot === 'secondary') {
       state.secondaryName = file.name;
@@ -1707,6 +1760,13 @@ function buildStructuredReportPayload() {
       primaryMask: basename(state.maskName),
       dims: state.baseVol?.dims || null,
       pixdimMm: state.baseVol?.pixdim || null,
+      colormap: COLORMAPS[state.colormap]?.name || 'Grayscale',
+      windowLevel: viewer
+        ? {
+            windowWidth: Number(viewer.getState().windowWidth.toFixed(1)),
+            windowLevel: Number(viewer.getState().windowLevel.toFixed(1)),
+          }
+        : null,
     },
     volumetrics: state.volumetrics,
     ranoResectEor: state.eorResult
@@ -1870,7 +1930,7 @@ function populateAndPrintReport() {
           const m = ai.regions[reg];
           return `
             <tr>
-              <td><strong>${reg}</strong></td>
+              <td><strong>${escHtml(reg)}</strong></td>
               <td class="num">${m.bothEmpty ? 'Empty' : m.dice.toFixed(3)}</td>
               <td class="num">${m.bothEmpty ? '–' : m.iou.toFixed(3)}</td>
               <td class="num">${m.bothEmpty ? '–' : (m.hd95Mm !== null ? m.hd95Mm.toFixed(2) + ' mm' : 'N/A')}</td>
@@ -1881,12 +1941,24 @@ function populateAndPrintReport() {
         .join('')
     : '<tr><td colspan="6">No AI evaluation loaded.</td></tr>';
 
+  const stView = viewer ? viewer.getState() : null;
+  const cmapName = COLORMAPS[state.colormap]?.name || 'Grayscale';
+  const wlMeta = stView ? `W ${Math.round(stView.windowWidth)} / L ${Math.round(stView.windowLevel)} · ${cmapName}` : cmapName;
+  const renderPrintImg = (src, alt, cap) =>
+    `<div class="pr-img-card">${
+      src ? `<img src="${escHtml(src)}" alt="${escHtml(alt)}" />` : '<div style="padding:24px 6px;color:#94a3b8;text-align:center;font-size:9px;">No viewport image</div>'
+    }<div class="pr-img-cap">${escHtml(cap)}</div></div>`;
+  const activeR2Print = getActiveRano2D(v);
+
   pr.innerHTML = `
     <div class="pr-header">
       <div>
         <h1>NeuroScope-RANO — Quantitative Neuro-Oncology Summary</h1>
         <div style="font-size:10.5px;color:#334155;margin-top:2px;">
           ${escHtml(state.activeCase?.title || 'Local Browser Study')} · MRI: <code>${escHtml(basename(state.baseName))}</code> · Mask: <code>${escHtml(basename(state.maskName))}</code>
+        </div>
+        <div style="font-size:9.8px;color:#475569;margin-top:2px;">
+          Display: ${escHtml(wlMeta)}${stView ? ` · Crosshair Voxel (${stView.ix}, ${stView.iy}, ${stView.iz})` : ''}
         </div>
       </div>
       <div class="pr-meta">
@@ -1901,19 +1973,19 @@ function populateAndPrintReport() {
     </div>
 
     <div class="pr-images">
-      <div class="pr-img-card"><img src="${imgAx}" alt="Axial view" /><div class="pr-img-cap">Axial (XY)</div></div>
-      <div class="pr-img-card"><img src="${imgCor}" alt="Coronal view" /><div class="pr-img-cap">Coronal (XZ)</div></div>
-      <div class="pr-img-card"><img src="${imgSag}" alt="Sagittal view" /><div class="pr-img-cap">Sagittal (YZ)</div></div>
-      <div class="pr-img-card"><img src="${img3d}" alt="3D projection" /><div class="pr-img-cap">3D Projection</div></div>
+      ${renderPrintImg(imgAx, 'Axial view', 'Axial (XY)')}
+      ${renderPrintImg(imgCor, 'Coronal view', 'Coronal (XZ)')}
+      ${renderPrintImg(imgSag, 'Sagittal view', 'Sagittal (YZ)')}
+      ${renderPrintImg(img3d, '3D projection', stView?.mode3d === 'mip' ? '3D MIP' : '3D Surface')}
     </div>
 
     <div class="pr-grid">
       <div class="pr-section">
         <h2>1. Volumetrics &amp; Automated Axial RANO 2D</h2>
         <div style="margin-bottom:6px;">
-          Axial ET Bidimensional:
-          <span class="pr-badge">${v ? `${v.rano2d.d1Mm.toFixed(1)} × ${v.rano2d.d2Mm.toFixed(1)} mm = ${v.rano2d.spdMm2.toFixed(1)} mm²` : 'N/A'}</span>
-          ${v?.rano2d?.bestSliceZ !== null && v?.rano2d?.bestSliceZ !== undefined ? `(Slice Z=${v.rano2d.bestSliceZ + 1})` : ''}
+          Axial ${escHtml(activeR2Print?.region || 'ET')} Bidimensional:
+          <span class="pr-badge">${activeR2Print ? `${activeR2Print.d1Mm.toFixed(1)} × ${activeR2Print.d2Mm.toFixed(1)} mm = ${activeR2Print.spdMm2.toFixed(1)} mm²` : 'N/A'}</span>
+          ${activeR2Print?.bestSliceZ !== null && activeR2Print?.bestSliceZ !== undefined ? `(Slice Z=${activeR2Print.bestSliceZ + 1})` : ''}
         </div>
         <table class="pr-table">
           <thead><tr><th>Compartment</th><th class="num">Volume</th><th class="num">Eq. Ø</th><th class="num">Centroid</th></tr></thead>
@@ -2016,13 +2088,56 @@ function bindAllEvents() {
   $('btn-export-csv')?.addEventListener('click', exportCsvSummary);
   $('btn-export-print')?.addEventListener('click', populateAndPrintReport);
 
-  // NiiVue reference modal
-  const openModal = () => $('niivue-modal')?.classList.remove('hidden');
-  const closeModal = () => $('niivue-modal')?.classList.add('hidden');
-  $('btn-niivue-info')?.addEventListener('click', openModal);
-  $('btn-close-niivue-modal')?.addEventListener('click', closeModal);
+  // Accessible Modal Dialog Controller (NiiVue info + Keyboard Shortcuts & RANO Quick-Reference)
+  const openModalById = (modalId) => {
+    const el = $(modalId);
+    if (!el) return;
+    // Close any other open modal first
+    ['niivue-modal', 'shortcuts-modal'].forEach((id) => {
+      if (id !== modalId) $(id)?.classList.add('hidden');
+    });
+    if (!state.activeModalId) {
+      state.modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
+    state.activeModalId = modalId;
+    el.classList.remove('hidden');
+    const closeBtn = el.querySelector('button[id^="btn-close-"]') || el.querySelector('button, [href]');
+    closeBtn?.focus();
+  };
+
+  const closeActiveModals = () => {
+    let closedAny = false;
+    ['niivue-modal', 'shortcuts-modal'].forEach((id) => {
+      const el = $(id);
+      if (el && !el.classList.contains('hidden')) {
+        el.classList.add('hidden');
+        closedAny = true;
+      }
+    });
+    state.activeModalId = null;
+    if (closedAny && state.modalReturnFocus && typeof state.modalReturnFocus.focus === 'function') {
+      state.modalReturnFocus.focus();
+      state.modalReturnFocus = null;
+    }
+    return closedAny;
+  };
+
+  $('btn-niivue-info')?.addEventListener('click', () => openModalById('niivue-modal'));
+  $('btn-close-niivue-modal')?.addEventListener('click', closeActiveModals);
   $('niivue-modal')?.addEventListener('click', (e) => {
-    if (e.target === $('niivue-modal')) closeModal();
+    if (e.target === $('niivue-modal')) closeActiveModals();
+  });
+
+  $('btn-shortcuts-help')?.addEventListener('click', () => {
+    if (state.activeModalId === 'shortcuts-modal') {
+      closeActiveModals();
+    } else {
+      openModalById('shortcuts-modal');
+    }
+  });
+  $('btn-close-shortcuts-modal')?.addEventListener('click', closeActiveModals);
+  $('shortcuts-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('shortcuts-modal')) closeActiveModals();
   });
 
   // Local file input pickers
@@ -2110,6 +2225,11 @@ function bindAllEvents() {
   $('slider-wl')?.addEventListener('input', onWLSliderInput);
   $('btn-auto-wl')?.addEventListener('click', () => viewer?.resetWindowLevel());
 
+  // MRI Base Colormap switcher
+  document.querySelectorAll('button.seg-btn[data-colormap]').forEach((btn) => {
+    btn.addEventListener('click', () => setColormapUI(btn.dataset.colormap));
+  });
+
   // Opacity slider
   $('slider-opacity')?.addEventListener('input', (e) => {
     const pct = Number(e.target.value);
@@ -2123,6 +2243,7 @@ function bindAllEvents() {
     chip.addEventListener('click', () => {
       const next = !chip.classList.contains('active');
       chip.classList.toggle('active', next);
+      chip.setAttribute('aria-pressed', String(next));
       viewer?.setLabelVisibility(Number(chip.dataset.label), next);
     });
   });
@@ -2148,6 +2269,7 @@ function bindAllEvents() {
     const btn = e.currentTarget;
     const next = !btn.classList.contains('active');
     btn.classList.toggle('active', next);
+    btn.setAttribute('aria-pressed', String(next));
     viewer?.setShowCrosshairs(next);
   });
 
@@ -2155,6 +2277,7 @@ function bindAllEvents() {
     const btn = e.currentTarget;
     const next = !btn.classList.contains('active');
     btn.classList.toggle('active', next);
+    btn.setAttribute('aria-pressed', String(next));
     viewer?.setShowCalipers(next);
   });
 
@@ -2191,21 +2314,36 @@ function bindAllEvents() {
   // 3D Mode buttons
   $('btn-3d-surface')?.addEventListener('click', () => {
     $('btn-3d-surface')?.classList.add('active');
+    $('btn-3d-surface')?.setAttribute('aria-pressed', 'true');
     $('btn-3d-mip')?.classList.remove('active');
+    $('btn-3d-mip')?.setAttribute('aria-pressed', 'false');
     viewer?.set3DMode('tumor_surface');
   });
   $('btn-3d-mip')?.addEventListener('click', () => {
     $('btn-3d-mip')?.classList.add('active');
+    $('btn-3d-mip')?.setAttribute('aria-pressed', 'true');
     $('btn-3d-surface')?.classList.remove('active');
+    $('btn-3d-surface')?.setAttribute('aria-pressed', 'false');
     viewer?.set3DMode('mip');
   });
   $('btn-3d-reset')?.addEventListener('click', () => {
     viewer?.set3DRotation(-0.55, 0.25);
   });
 
-  // Workbench tabs
-  document.querySelectorAll('button.tab-btn[data-tab]').forEach((btn) => {
+  // Workbench tabs (click + WAI-ARIA ArrowLeft/ArrowRight/Home/End navigation)
+  const tabBtns = Array.from(document.querySelectorAll('button.tab-btn[data-tab]'));
+  tabBtns.forEach((btn, idx) => {
     btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+    btn.addEventListener('keydown', (e) => {
+      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      let nextIdx = idx;
+      if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabBtns.length;
+      else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabBtns.length) % tabBtns.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = tabBtns.length - 1;
+      setActiveTab(tabBtns[nextIdx].dataset.tab, true);
+    });
   });
 
   // Tab 1: Jump to Best Axial Slice + centroid click delegation
@@ -2222,6 +2360,7 @@ function bindAllEvents() {
     const calBtn = $('btn-toggle-calipers');
     if (calBtn && !calBtn.classList.contains('active')) {
       calBtn.classList.add('active');
+      calBtn.setAttribute('aria-pressed', 'true');
     }
     viewer.setShowCalipers(true);
 
@@ -2376,16 +2515,62 @@ function bindAllEvents() {
     selectAiRegion(row.dataset.aiRegion);
   });
 
-  // Keyboard shortcuts (ignored while typing in form controls or with modifier keys)
+  $('ai-table-body')?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('tr[data-ai-region]');
+    if (!row) return;
+    e.preventDefault();
+    selectAiRegion(row.dataset.aiRegion);
+  });
+
+  // Keyboard shortcuts & modal focus trap (ignored while typing in form controls or with modifier keys)
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      closeModal();
+      if (!closeActiveModals()) {
+        hideAlertBanner();
+      }
       return;
     }
+
+    // Trap Tab focus inside active modal dialog
+    if (e.key === 'Tab' && state.activeModalId) {
+      const modalEl = $(state.activeModalId);
+      if (modalEl && !modalEl.classList.contains('hidden')) {
+        const focusable = Array.from(
+          modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        );
+        if (focusable.length > 0) {
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+      return;
+    }
+
     const tag = (e.target?.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea' || e.target?.isContentEditable) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+    if (e.key === '?') {
+      e.preventDefault();
+      if (state.activeModalId === 'shortcuts-modal') {
+        closeActiveModals();
+      } else {
+        openModalById('shortcuts-modal');
+      }
+      return;
+    }
+
+    if (state.activeModalId) return;
+
+    const k = e.key.toLowerCase();
     if (e.key === 'ArrowUp' && viewer && state.baseVol) {
       e.preventDefault();
       const st = viewer.getState();
@@ -2394,11 +2579,23 @@ function bindAllEvents() {
       e.preventDefault();
       const st = viewer.getState();
       viewer.setCrosshair(st.ix, st.iy, st.iz - 1, true);
-    } else if (e.key.toLowerCase() === 'c') {
+    } else if (e.key === '1') {
+      setColormapUI('grayscale');
+    } else if (e.key === '2') {
+      setColormapUI('hot_metal');
+    } else if (e.key === '3') {
+      setColormapUI('cool_bone');
+    } else if (k === 'c') {
       $('btn-toggle-crosshairs')?.click();
-    } else if (e.key.toLowerCase() === 'm') {
+    } else if (k === 'm') {
       $('btn-toggle-calipers')?.click();
-    } else if (e.key.toLowerCase() === 'e' && state.aiEvalResult) {
+    } else if (k === 'b') {
+      $('btn-jump-best-slice')?.click();
+    } else if (k === 'a') {
+      $('btn-auto-wl')?.click();
+    } else if (k === 'r') {
+      $('btn-reset-view')?.click();
+    } else if (k === 'e' && state.aiEvalResult) {
       toggleAiErrorOverlay();
     }
   });

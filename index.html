@@ -99,7 +99,7 @@
         <span>100% Browser-Local · Zero Server Uploads</span>
       </div>
 
-      <div class="export-group" role="group" aria-label="Export clinical report">
+      <div class="export-group" role="group" aria-label="Export clinical report and quick reference">
         <button type="button" id="btn-export-json" class="btn btn-subtle" title="Download structured JSON clinical &amp; AI report">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.5V10.5M8 10.5L5.2 7.7M8 10.5L10.8 7.7M2.8 12.8H13.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           JSON
@@ -111,6 +111,9 @@
         <button type="button" id="btn-export-print" class="btn btn-primary-outline" title="Print or Save PDF clinical summary report">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.5 5.8V2.5H11.5V5.8M4.5 11.2H3.2C2.6 11.2 2.2 10.8 2.2 10.2V7C2.2 6.4 2.6 6 3.2 6H12.8C13.4 6 13.8 6.4 13.8 7V10.2C13.8 10.8 13.4 11.2 12.8 11.2H11.5M4.5 9.2H11.5V13.5H4.5V9.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
           Print
+        </button>
+        <button type="button" id="btn-shortcuts-help" class="btn btn-help" aria-haspopup="dialog" aria-controls="shortcuts-modal" aria-label="Keyboard shortcuts and RANO quick reference" title="Keyboard Shortcuts &amp; RANO Quick-Reference (Shortcut: ?)">
+          <span aria-hidden="true">?</span>
         </button>
       </div>
     </div>
@@ -145,19 +148,19 @@
       <div class="stage-top-strip">
         <div class="dropzone-row" role="group" aria-label="Local NIfTI file loaders">
           <label id="dropzone-mri" class="file-slot" for="input-file-mri" data-slot="mri" title="Click or drop a local .nii / .nii.gz base MRI volume">
-            <input id="input-file-mri" type="file" accept=".nii,.gz,.nii.gz" hidden />
+            <input id="input-file-mri" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
             <span class="file-slot-tag tag-mri">MRI</span>
             <span id="label-file-mri" class="file-slot-name">case01_preop_t1ce.nii.gz</span>
           </label>
 
           <label id="dropzone-mask" class="file-slot" for="input-file-mask" data-slot="mask" title="Click or drop a Primary Segmentation Mask (GT / Pre-Op)">
-            <input id="input-file-mask" type="file" accept=".nii,.gz,.nii.gz" hidden />
+            <input id="input-file-mask" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
             <span class="file-slot-tag tag-mask">MASK / GT</span>
             <span id="label-file-mask" class="file-slot-name">case01_preop_gt.nii.gz</span>
           </label>
 
           <label id="dropzone-secondary" class="file-slot" for="input-file-secondary" data-slot="secondary" title="Click or drop a Secondary Comparison Mask (AI Prediction or Post-Op Mask)">
-            <input id="input-file-secondary" type="file" accept=".nii,.gz,.nii.gz" hidden />
+            <input id="input-file-secondary" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
             <span class="file-slot-tag tag-comp">PRED / POST-OP</span>
             <span id="label-file-secondary" class="file-slot-name">case01_preop_pred.nii.gz</span>
           </label>
@@ -187,7 +190,24 @@
             <input id="slider-wl" type="range" min="-500" max="1500" step="1" value="400" />
             <span id="val-wl" class="mono slider-val">400</span>
           </div>
-          <button type="button" id="btn-auto-wl" class="btn-chip" title="Restore auto-percentile Window/Level">Auto</button>
+          <button type="button" id="btn-auto-wl" class="btn-chip" title="Restore auto-percentile Window/Level (Shortcut: A)">Auto</button>
+        </div>
+
+        <div class="tb-divider" aria-hidden="true"></div>
+
+        <!-- MRI Base Colormap Switcher -->
+        <div class="tb-group">
+          <div id="colormap-switcher" class="segmented" role="group" aria-label="MRI base colormap">
+            <button type="button" class="seg-btn active" data-colormap="grayscale" aria-pressed="true" title="Standard radiological Grayscale LUT (Shortcut: 1)">
+              <span class="cmap-dot cmap-gray" aria-hidden="true"></span>Grayscale
+            </button>
+            <button type="button" class="seg-btn" data-colormap="hot_metal" aria-pressed="false" title="Perceptual Hot Metal LUT for subtle T1ce enhancement (Shortcut: 2)">
+              <span class="cmap-dot cmap-hot" aria-hidden="true"></span>Hot Metal
+            </button>
+            <button type="button" class="seg-btn" data-colormap="cool_bone" aria-pressed="false" title="Perceptual Cool Bone LUT for parenchymal &amp; cavity rim contrast (Shortcut: 3)">
+              <span class="cmap-dot cmap-bone" aria-hidden="true"></span>Cool Bone
+            </button>
+          </div>
         </div>
 
         <div class="tb-divider" aria-hidden="true"></div>
@@ -205,16 +225,16 @@
 
         <!-- BraTS + Post-Op Label Visibility Chips -->
         <div class="tb-group tb-labels" role="group" aria-label="Segmentation label visibility">
-          <button type="button" class="label-chip active" data-label="1" title="Toggle Label 1: Necrotic / Non-Enhancing Core (NCR/NET)">
+          <button type="button" class="label-chip active" data-label="1" aria-pressed="true" title="Toggle Label 1: Necrotic / Non-Enhancing Core (NCR/NET)">
             <span class="swatch" style="--swatch:#f43f5e"></span>NCR
           </button>
-          <button type="button" class="label-chip active" data-label="2" title="Toggle Label 2: Peritumoral Edema / FLAIR (ED)">
+          <button type="button" class="label-chip active" data-label="2" aria-pressed="true" title="Toggle Label 2: Peritumoral Edema / FLAIR (ED)">
             <span class="swatch" style="--swatch:#f59e0b"></span>Edema
           </button>
-          <button type="button" class="label-chip active" data-label="3" title="Toggle Label 3 (legacy 4): Enhancing Tumor (ET)">
+          <button type="button" class="label-chip active" data-label="3" aria-pressed="true" title="Toggle Label 3 (legacy 4): Enhancing Tumor (ET)">
             <span class="swatch" style="--swatch:#38bdf8"></span>Enhancing
           </button>
-          <button type="button" class="label-chip active" data-label="5" title="Toggle Label 5: Surgical Resection Cavity (RC)">
+          <button type="button" class="label-chip active" data-label="5" aria-pressed="true" title="Toggle Label 5: Surgical Resection Cavity (RC)">
             <span class="swatch" style="--swatch:#a855f7"></span>Cavity
           </button>
         </div>
@@ -224,18 +244,18 @@
         <!-- Overlay Mode Switcher -->
         <div class="tb-group">
           <div class="segmented" role="group" aria-label="Overlay rendering mode">
-            <button type="button" class="seg-btn active" data-overlay-mode="mask" title="Show BraTS multi-label segmentation overlay">Seg</button>
-            <button type="button" class="seg-btn" data-overlay-mode="error" title="Show AI TP / FP / FN 3D error overlay">AI Error</button>
-            <button type="button" class="seg-btn" data-overlay-mode="none" title="Hide segmentation overlay">Off</button>
+            <button type="button" class="seg-btn active" data-overlay-mode="mask" aria-pressed="true" title="Show BraTS multi-label segmentation overlay">Seg</button>
+            <button type="button" class="seg-btn" data-overlay-mode="error" aria-pressed="false" title="Show AI TP / FP / FN 3D error overlay (Shortcut: E)">AI Error</button>
+            <button type="button" class="seg-btn" data-overlay-mode="none" aria-pressed="false" title="Hide segmentation overlay">Off</button>
           </div>
         </div>
 
         <!-- View Toggles & Utility Actions -->
         <div class="tb-group tb-actions-right">
-          <button type="button" id="btn-toggle-crosshairs" class="btn-chip active" title="Toggle synchronized crosshairs (Shortcut: C)">Crosshair</button>
-          <button type="button" id="btn-toggle-calipers" class="btn-chip active" title="Toggle axial RANO 2D calipers (Shortcut: M)">Calipers</button>
+          <button type="button" id="btn-toggle-crosshairs" class="btn-chip active" aria-pressed="true" title="Toggle synchronized crosshairs (Shortcut: C)">Crosshair</button>
+          <button type="button" id="btn-toggle-calipers" class="btn-chip active" aria-pressed="true" title="Toggle axial RANO 2D calipers (Shortcut: M)">Calipers</button>
           <button type="button" id="btn-jump-et" class="btn-chip" title="Snap crosshair to active tumor centroid">Center ET</button>
-          <button type="button" id="btn-reset-view" class="btn-chip" title="Reset W/L, crosshair, and 3D camera">Reset</button>
+          <button type="button" id="btn-reset-view" class="btn-chip" title="Reset W/L, crosshair, and 3D camera (Shortcut: R)">Reset</button>
           <button type="button" id="btn-niivue-info" class="btn-chip btn-info-chip" title="About optional NiiVue WebGL2 ecosystem &amp; offline Canvas architecture" aria-label="NiiVue WebGL2 reference info">
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2V11.2M8 4.8V5.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             NiiVue
@@ -309,8 +329,8 @@
               </div>
               <div class="vp-3d-controls">
                 <div class="segmented segmented-xs" role="group" aria-label="3D rendering mode">
-                  <button type="button" id="btn-3d-surface" class="seg-btn active" title="Depth-shaded 3D volumetric tumor surface inside glass brain contour">Surface</button>
-                  <button type="button" id="btn-3d-mip" class="seg-btn" title="Rotatable grayscale MRI + tumor Maximum Intensity Projection">MIP</button>
+                  <button type="button" id="btn-3d-surface" class="seg-btn active" aria-pressed="true" title="Depth-shaded 3D volumetric tumor surface inside glass brain contour">Surface</button>
+                  <button type="button" id="btn-3d-mip" class="seg-btn" aria-pressed="false" title="Rotatable MRI + tumor Maximum Intensity Projection">MIP</button>
                 </div>
                 <button type="button" id="btn-3d-reset" class="btn-xs" title="Reset 3D camera orbit">Orbit</button>
               </div>
@@ -322,46 +342,49 @@
         </div>
       </div>
 
-      <!-- Bottom Synchronized Crosshair Telemetry Bar -->
-      <div class="telemetry-bar" aria-live="polite">
-        <div class="tele-items">
+      <!-- Live Cursor & Synchronized Crosshair Voxel Telemetry Pill Bar -->
+      <div class="telemetry-bar" role="region" aria-label="Live cursor and crosshair voxel telemetry">
+        <div id="live-telemetry-pill" class="live-telemetry-pill">
+          <span id="tele-mode-badge" class="tele-mode-badge">CROSSHAIR</span>
           <div class="tele-item">
-            <span class="tele-k">VOXEL</span>
+            <span class="tele-k">Voxel</span>
             <span id="tele-voxel" class="mono tele-v">(–, –, –)</span>
           </div>
+          <span class="tele-sep" aria-hidden="true">&middot;</span>
           <div class="tele-item">
-            <span class="tele-k">RAS (mm)</span>
+            <span id="tele-coord-tag" class="tele-k">MNI/RAS (mm)</span>
             <span id="tele-mm" class="mono tele-v">(–, –, –)</span>
           </div>
+          <span class="tele-sep" aria-hidden="true">&middot;</span>
           <div class="tele-item">
-            <span class="tele-k">INTENSITY</span>
+            <span class="tele-k">MRI</span>
             <span id="tele-intensity" class="mono tele-v">–</span>
           </div>
+          <span class="tele-sep" aria-hidden="true">&middot;</span>
           <div class="tele-item tele-label-item">
-            <span class="tele-k">LABEL</span>
             <span id="tele-label-dot" class="swatch" style="--swatch:#475569"></span>
             <span id="tele-label-text" class="tele-v">Background</span>
           </div>
         </div>
-        <div class="tele-hint">L-Drag: Crosshair · Scroll: Slice · R-Drag/Shift-Drag: W/L · 3D Drag: Orbit</div>
+        <div class="tele-hint">L-Drag: Crosshair &middot; Scroll/↑↓: Slice &middot; R-Drag: W/L &middot; <kbd class="tele-kbd">?</kbd> Shortcuts</div>
       </div>
     </section>
 
     <!-- RIGHT: 4-Tab Clinical & AI Workbench Panel -->
     <aside class="workbench" aria-label="Clinical quantitative workbench">
       <nav class="tab-bar" role="tablist" aria-label="Clinical analysis modules">
-        <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-volumetrics" data-tab="volumetrics">
+        <button type="button" id="tab-volumetrics" class="tab-btn active" role="tab" aria-selected="true" tabindex="0" aria-controls="panel-volumetrics" data-tab="volumetrics">
           <span>Volumetrics</span>
         </button>
-        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-eor" data-tab="eor">
+        <button type="button" id="tab-eor" class="tab-btn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-eor" data-tab="eor">
           <span>EOR / Resect</span>
           <span id="tab-badge-eor" class="tab-mini-badge hidden">–</span>
         </button>
-        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-rano2" data-tab="rano2">
+        <button type="button" id="tab-rano2" class="tab-btn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-rano2" data-tab="rano2">
           <span>RANO 2.0</span>
           <span id="tab-badge-rano2" class="tab-mini-badge hidden">–</span>
         </button>
-        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-ai" data-tab="ai">
+        <button type="button" id="tab-ai" class="tab-btn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-ai" data-tab="ai">
           <span>AI Eval</span>
           <span id="tab-badge-ai" class="tab-mini-badge hidden">–</span>
         </button>
@@ -369,7 +392,7 @@
 
       <div class="workbench-scroll">
         <!-- TAB 1: VOLUMETRICS & 2D RANO -->
-        <section id="panel-volumetrics" class="tab-panel active" role="tabpanel">
+        <section id="panel-volumetrics" class="tab-panel active" role="tabpanel" aria-labelledby="tab-volumetrics">
           <div class="kpi-grid kpi-grid-4">
             <div class="kpi-card">
               <span class="kpi-label">Whole Tumor</span>
@@ -467,21 +490,21 @@
         </section>
 
         <!-- TAB 2: EOR & RANO-RESECT -->
-        <section id="panel-eor" class="tab-panel" role="tabpanel">
+        <section id="panel-eor" class="tab-panel" role="tabpanel" aria-labelledby="tab-eor">
           <!-- Pre/Post Mask Pair Binding Strip -->
           <div class="pair-bar">
             <div class="pair-slot">
               <span class="pair-k">PRE-OP MASK</span>
               <span id="eor-pre-label" class="pair-v mono">Not loaded</span>
               <label class="btn-xs btn-upload-inline" for="input-eor-pre">Load
-                <input id="input-eor-pre" type="file" accept=".nii,.gz,.nii.gz" hidden />
+                <input id="input-eor-pre" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
               </label>
             </div>
             <div class="pair-slot">
               <span class="pair-k">POST-OP MASK</span>
               <span id="eor-post-label" class="pair-v mono">Not loaded</span>
               <label class="btn-xs btn-upload-inline" for="input-eor-post">Load
-                <input id="input-eor-post" type="file" accept=".nii,.gz,.nii.gz" hidden />
+                <input id="input-eor-post" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
               </label>
             </div>
             <button type="button" id="btn-eor-load-sample" class="btn btn-subtle btn-sm-full">Load Case 01 Pre/Post-Op Pair</button>
@@ -552,7 +575,7 @@
         </section>
 
         <!-- TAB 3: LONGITUDINAL RANO 2.0 -->
-        <section id="panel-rano2" class="tab-panel" role="tabpanel">
+        <section id="panel-rano2" class="tab-panel" role="tabpanel" aria-labelledby="tab-rano2">
           <!-- Hero RANO 2.0 Response Banner -->
           <div id="rano2-hero-card" class="hero-card hero-neutral">
             <div class="hero-eyebrow">RANO 2.0 RESPONSE ASSESSMENT (WEN ET AL., JCO 2023)</div>
@@ -670,21 +693,21 @@
         </section>
 
         <!-- TAB 4: AI SEGMENTATION EVALUATOR -->
-        <section id="panel-ai" class="tab-panel" role="tabpanel">
+        <section id="panel-ai" class="tab-panel" role="tabpanel" aria-labelledby="tab-ai">
           <!-- GT vs Pred Binding Bar -->
           <div class="pair-bar">
             <div class="pair-slot">
               <span class="pair-k">GROUND TRUTH</span>
               <span id="ai-gt-label" class="pair-v mono">Not loaded</span>
               <label class="btn-xs btn-upload-inline" for="input-ai-gt">Load
-                <input id="input-ai-gt" type="file" accept=".nii,.gz,.nii.gz" hidden />
+                <input id="input-ai-gt" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
               </label>
             </div>
             <div class="pair-slot">
               <span class="pair-k">AI PREDICTION</span>
               <span id="ai-pred-label" class="pair-v mono">Not loaded</span>
               <label class="btn-xs btn-upload-inline" for="input-ai-pred">Load
-                <input id="input-ai-pred" type="file" accept=".nii,.gz,.nii.gz" hidden />
+                <input id="input-ai-pred" class="sr-only" type="file" accept=".nii,.gz,.nii.gz" />
               </label>
             </div>
             <button type="button" id="btn-ai-load-sample" class="btn btn-subtle btn-sm-full">Load Case 01 GT vs. AI Pred</button>
@@ -819,6 +842,69 @@
         <div class="modal-links">
           <a href="https://niivue.github.io/niivue/" target="_blank" rel="noopener noreferrer" class="btn btn-primary-outline">NiiVue Project &amp; Demos ↗</a>
           <a href="https://github.com/niivue/niivue" target="_blank" rel="noopener noreferrer" class="btn btn-subtle">NiiVue GitHub Repository ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts & RANO Quick-Reference Modal -->
+  <div id="shortcuts-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="shortcuts-modal-title">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div>
+          <h2 id="shortcuts-modal-title">Keyboard Shortcuts &amp; RANO Quick-Reference</h2>
+          <p class="modal-subtitle">Interactive viewport hotkeys, RANO 2.0 response criteria &amp; RANO-Resect surgical classes</p>
+        </div>
+        <button type="button" id="btn-close-shortcuts-modal" class="btn-icon" aria-label="Close shortcuts and RANO reference modal">&times;</button>
+      </div>
+      <div class="modal-body modal-body-scroll">
+        <div class="ref-grid">
+          <!-- Left Column: Keyboard & Mouse Controls -->
+          <div class="ref-section">
+            <h3 class="ref-heading">Viewport Hotkeys &amp; Pointer Gestures</h3>
+            <dl class="shortcut-list">
+              <div class="shortcut-row"><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Step Axial Z slice superior / inferior</dd></div>
+              <div class="shortcut-row"><dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>MRI Colormap: Grayscale / Hot Metal / Cool Bone</dd></div>
+              <div class="shortcut-row"><dt><kbd>C</kbd></dt><dd>Toggle synchronized 3D crosshairs</dd></div>
+              <div class="shortcut-row"><dt><kbd>M</kbd></dt><dd>Toggle axial RANO 2D calipers (d₁ &times; d₂)</dd></div>
+              <div class="shortcut-row"><dt><kbd>B</kbd></dt><dd>Jump to best axial RANO slice &amp; show calipers</dd></div>
+              <div class="shortcut-row"><dt><kbd>E</kbd></dt><dd>Toggle 3D AI TP / FP / FN error overlay</dd></div>
+              <div class="shortcut-row"><dt><kbd>A</kbd></dt><dd>Auto-percentile Window / Level (p1–p99.5)</dd></div>
+              <div class="shortcut-row"><dt><kbd>R</kbd></dt><dd>Reset W/L, crosshair &amp; 3D camera orbit</dd></div>
+              <div class="shortcut-row"><dt><kbd>?</kbd> / <kbd>Esc</kbd></dt><dd>Open or close Quick-Reference modal</dd></div>
+            </dl>
+            <div class="ref-subbox">
+              <strong>Mouse &amp; Touch Gestures</strong>
+              <ul>
+                <li><strong>Left-Drag (2D):</strong> Move synchronized 3D crosshair</li>
+                <li><strong>Scroll Wheel (2D):</strong> Traverse orthogonal slices</li>
+                <li><strong>Right-Drag / Shift+Drag (2D):</strong> Adjust Window / Level</li>
+                <li><strong>Drag / Dbl-Click (3D):</strong> Orbit 3D camera / Reset view</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Right Column: RANO 2.0 & RANO-Resect Quick Reference -->
+          <div class="ref-section">
+            <h3 class="ref-heading">RANO 2.0 Response Criteria (Wen et al., JCO 2023)</h3>
+            <div class="ref-table-mini">
+              <div class="ref-tier"><span class="ref-code code-good">CR</span><span><strong>Complete Response:</strong> 0 mm² SPD &amp; 0 cm³ ET, off/physiologic steroids, stable/improved</span></div>
+              <div class="ref-tier"><span class="ref-code code-good">PR</span><span><strong>Partial Response:</strong> &le;&minus;50% 2D SPD or &le;&minus;65% 3D Vol vs. baseline, stable/&darr; steroids</span></div>
+              <div class="ref-tier"><span class="ref-code code-cyan">MR</span><span><strong>Minor Response:</strong> &le;&minus;25% SPD or &le;&minus;40% Vol vs. baseline (non-enhancing / LGG)</span></div>
+              <div class="ref-tier"><span class="ref-code code-neutral">SD</span><span><strong>Stable Disease:</strong> Neither response nor progression (or steroid-increased downgrade)</span></div>
+              <div class="ref-tier"><span class="ref-code code-bad">PD</span><span><strong>Progressive Disease:</strong> &ge;+25% SPD or &ge;+40% Vol vs. nadir, new lesion (&ge;10&times;10 mm), or clinical decline <em>(&le;12w post-RT &amp; stable &rarr; Preliminary PD, confirm &ge;4 wks)</em></span></div>
+            </div>
+
+            <h3 class="ref-heading" style="margin-top:8px;">RANO-Resect Classes (Karschnia et al., 2023)</h3>
+            <div class="ref-table-mini">
+              <div class="ref-tier"><span class="ref-code code-good">1</span><span><strong>Supramaximal:</strong> 0 cm³ residual CE &amp; &le;5.0 cm³ non-CE</span></div>
+              <div class="ref-tier"><span class="ref-code code-good">2A</span><span><strong>Complete CE:</strong> 0 cm³ residual CE &amp; &gt;5.0 cm³ non-CE</span></div>
+              <div class="ref-tier"><span class="ref-code code-cyan">2B</span><span><strong>Near-Total CE:</strong> &gt;0 to &le;1.0 cm³ residual CE (&ge;10% CE EOR)</span></div>
+              <div class="ref-tier"><span class="ref-code code-warn">3A</span><span><strong>Subtotal CE:</strong> &gt;1.0 to &le;5.0 cm³ residual CE (&ge;10% CE EOR)</span></div>
+              <div class="ref-tier"><span class="ref-code code-bad">3B</span><span><strong>Partial CE:</strong> &gt;5.0 cm³ residual CE (&ge;10% CE EOR)</span></div>
+              <div class="ref-tier"><span class="ref-code code-bad">4</span><span><strong>Biopsy:</strong> &lt;10% CE tumor volume reduction</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
