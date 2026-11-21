@@ -173,6 +173,27 @@
             <button type="button" class="tp-pill" data-tp-id="followup">6-Mo Follow-Up</button>
           </div>
           <span id="active-volume-meta" class="vol-meta-badge mono">64×64×48 · 2.0mm³</span>
+
+          <!-- Viewport Layout & Fullscreen -->
+          <div class="tb-group tb-layout">
+            <div id="layout-switcher" class="segmented" role="group" aria-label="Viewport layout">
+              <button type="button" class="seg-btn layout-btn active" data-layout="2x2" aria-pressed="true" title="2×2 quad layout">
+                <svg class="layout-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="5.2" height="5.2" rx="1"/><rect x="7.8" y="1" width="5.2" height="5.2" rx="1"/><rect x="1" y="7.8" width="5.2" height="5.2" rx="1"/><rect x="7.8" y="7.8" width="5.2" height="5.2" rx="1"/></svg>
+                <span class="sr-only">2 by 2</span>
+              </button>
+              <button type="button" class="seg-btn layout-btn" data-layout="1p3" aria-pressed="false" title="One large view + three small (Shortcut: L cycles layouts)">
+                <svg class="layout-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="8" height="12" rx="1"/><rect x="10" y="1" width="3" height="3.4" rx="0.6"/><rect x="10" y="5.3" width="3" height="3.4" rx="0.6"/><rect x="10" y="9.6" width="3" height="3.4" rx="0.6"/></svg>
+                <span class="sr-only">One large plus three</span>
+              </button>
+              <button type="button" class="seg-btn layout-btn" data-layout="1x1" aria-pressed="false" title="Single large view (Shortcut: F)">
+                <svg class="layout-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="12" height="12" rx="1"/></svg>
+                <span class="sr-only">Single view</span>
+              </button>
+            </div>
+            <button type="button" id="btn-fullscreen" class="btn-chip" aria-pressed="false" title="Fullscreen viewer + workbench">
+              <span aria-hidden="true">⛶</span> <span class="fs-label">Fullscreen</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -261,6 +282,7 @@
             NiiVue
           </button>
         </div>
+
       </div>
 
       <!-- 2x2 Quad Imaging Grid -->
@@ -271,7 +293,7 @@
           <span id="viewer-loading-text">Initializing Case 01 Pre-Op GBM volumes…</span>
         </div>
 
-        <div class="quad-grid">
+        <div id="quad-grid" class="quad-grid" data-layout="2x2">
           <!-- Axial Viewport -->
           <div class="viewport-pane" data-plane="axial">
             <div class="viewport-header">
@@ -282,6 +304,9 @@
               <div class="vp-slice-ctrl">
                 <input id="slider-slice-z" class="slice-slider" type="range" min="0" max="47" value="24" aria-label="Axial Z slice" />
                 <span id="badge-slice-z" class="mono vp-slice-text">Z 25/48</span>
+              <button type="button" class="vp-max-btn" data-max-toggle aria-label="Maximize axial view" title="Maximize / restore this view (Shortcut: F · double-click header)">
+                <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5.5V2h3.5M12 5.5V2H8.5M2 8.5V12h3.5M12 8.5V12H8.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
               </div>
             </div>
             <div class="viewport-canvas-wrap">
@@ -298,6 +323,9 @@
               <div class="vp-slice-ctrl">
                 <input id="slider-slice-y" class="slice-slider" type="range" min="0" max="63" value="32" aria-label="Coronal Y slice" />
                 <span id="badge-slice-y" class="mono vp-slice-text">Y 33/64</span>
+              <button type="button" class="vp-max-btn" data-max-toggle aria-label="Maximize coronal view" title="Maximize / restore this view (Shortcut: F · double-click header)">
+                <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5.5V2h3.5M12 5.5V2H8.5M2 8.5V12h3.5M12 8.5V12H8.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
               </div>
             </div>
             <div class="viewport-canvas-wrap">
@@ -314,6 +342,9 @@
               <div class="vp-slice-ctrl">
                 <input id="slider-slice-x" class="slice-slider" type="range" min="0" max="63" value="32" aria-label="Sagittal X slice" />
                 <span id="badge-slice-x" class="mono vp-slice-text">X 33/64</span>
+              <button type="button" class="vp-max-btn" data-max-toggle aria-label="Maximize sagittal view" title="Maximize / restore this view (Shortcut: F · double-click header)">
+                <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5.5V2h3.5M12 5.5V2H8.5M2 8.5V12h3.5M12 8.5V12H8.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
               </div>
             </div>
             <div class="viewport-canvas-wrap">
@@ -333,6 +364,9 @@
                   <button type="button" id="btn-3d-mip" class="seg-btn" aria-pressed="false" title="Rotatable MRI + tumor Maximum Intensity Projection">MIP</button>
                 </div>
                 <button type="button" id="btn-3d-reset" class="btn-xs" title="Reset 3D camera orbit">Orbit</button>
+              <button type="button" class="vp-max-btn" data-max-toggle aria-label="Maximize 3D view" title="Maximize / restore this view (Shortcut: F · double-click header)">
+                <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5.5V2h3.5M12 5.5V2H8.5M2 8.5V12h3.5M12 8.5V12H8.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
               </div>
             </div>
             <div class="viewport-canvas-wrap">
@@ -366,9 +400,20 @@
             <span id="tele-label-text" class="tele-v">Background</span>
           </div>
         </div>
-        <div class="tele-hint">L-Drag: Crosshair &middot; Scroll/↑↓: Slice &middot; R-Drag: W/L &middot; <kbd class="tele-kbd">?</kbd> Shortcuts</div>
+        <div class="tele-hint">L-Drag: Crosshair &middot; Scroll/↑↓: Slice &middot; R-Drag: W/L &middot; F: Focus view &middot; <kbd class="tele-kbd">?</kbd> Shortcuts</div>
       </div>
     </section>
+
+    <!-- Draggable splitter: viewer width vs workbench width -->
+    <div
+      id="workbench-splitter"
+      class="col-splitter"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize viewer and workbench. Use left and right arrow keys; double-click to reset."
+      tabindex="0"
+      title="Drag to resize the viewer · Double-click to reset"
+    ><span class="col-splitter-grip" aria-hidden="true"></span></div>
 
     <!-- RIGHT: 4-Tab Clinical & AI Workbench Panel -->
     <aside class="workbench" aria-label="Clinical quantitative workbench">
@@ -871,6 +916,8 @@
               <div class="shortcut-row"><dt><kbd>E</kbd></dt><dd>Toggle 3D AI TP / FP / FN error overlay</dd></div>
               <div class="shortcut-row"><dt><kbd>A</kbd></dt><dd>Auto-percentile Window / Level (p1–p99.5)</dd></div>
               <div class="shortcut-row"><dt><kbd>R</kbd></dt><dd>Reset W/L, crosshair &amp; 3D camera orbit</dd></div>
+              <div class="shortcut-row"><dt><kbd>F</kbd></dt><dd>Maximize / restore the view under the cursor (or last used)</dd></div>
+              <div class="shortcut-row"><dt><kbd>L</kbd></dt><dd>Cycle viewport layout: 2×2 → 1 + 3 → single</dd></div>
               <div class="shortcut-row"><dt><kbd>?</kbd> / <kbd>Esc</kbd></dt><dd>Open or close Quick-Reference modal</dd></div>
             </dl>
             <div class="ref-subbox">

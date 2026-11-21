@@ -2602,12 +2602,244 @@ function bindAllEvents() {
 }
 
 // ============================================================================
+// Viewer Layouts (2×2 · 1+3 · single), Pane Maximize, Splitter & Fullscreen
+// ============================================================================
+
+const LAYOUT_STORAGE_KEY = 'neuroscope-rano.layout.v1';
+const VIEW_LAYOUTS = ['2x2', '1p3', '1x1'];
+const VIEW_PLANES = ['axial', 'coronal', 'sagittal', 'mip3d'];
+const WORKBENCH_MIN_PX = 390;
+const WORKBENCH_MAX_PX = 720;
+const VIEWER_MIN_PX = 520;
+const SPLITTER_KEY_STEP_PX = 24;
+
+function readLayoutPrefs() {
+  try {
+    const raw = window.localStorage?.getItem(LAYOUT_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLayoutPrefs(patch) {
+  try {
+    window.localStorage?.setItem(LAYOUT_STORAGE_KEY, JSON.stringify({ ...readLayoutPrefs(), ...patch }));
+  } catch {
+    /* storage unavailable (private mode / sandboxed iframe) — layout still works for this visit */
+  }
+}
+
+function bindViewerLayoutControls() {
+  const grid = $('quad-grid');
+  const workstation = document.querySelector('.workstation');
+  const splitter = $('workbench-splitter');
+  const btnFullscreen = $('btn-fullscreen');
+  if (!grid) return;
+
+  const panes = Object.fromEntries(
+    VIEW_PLANES.map((plane) => [plane, grid.querySelector(`.viewport-pane[data-plane="${plane}"]`)])
+  );
+  const layoutBtns = Array.from(document.querySelectorAll('#layout-switcher .layout-btn'));
+  const prefs = readLayoutPrefs();
+
+  let layout = VIEW_LAYOUTS.includes(prefs.layout) ? prefs.layout : '2x2';
+  let primary = VIEW_PLANES.includes(prefs.primary) ? prefs.primary : 'axial';
+  let lastMultiLayout = layout === '1x1' ? (VIEW_LAYOUTS.includes(prefs.lastMulti) ? prefs.lastMulti : '2x2') : layout;
+  let hoveredPlane = null;
+
+  const repaint = () => requestAnimationFrame(() => viewer?.resize());
+
+  const applyLayout = ({ persist = true } = {}) => {
+    grid.dataset.layout = layout;
+    for (const plane of VIEW_PLANES) {
+      const pane = panes[plane];
+      if (!pane) continue;
+      const isPrimary = plane === primary;
+      pane.classList.toggle('is-primary', isPrimary);
+      const btn = pane.querySelector('[data-max-toggle]');
+      if (btn) {
+        const maximized = layout === '1x1' && isPrimary;
+        btn.setAttribute('aria-pressed', String(maximized));
+        const name = plane === 'mip3d' ? '3D' : plane;
+        btn.setAttribute('aria-label', maximized ? `Restore ${name} view` : `Maximize ${name} view`);
+      }
+    }
+    for (const btn of layoutBtns) {
+      const on = btn.dataset.layout === layout;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
+    if (persist) writeLayoutPrefs({ layout, primary, lastMulti: lastMultiLayout });
+    repaint();
+  };
+
+  const setLayout = (next) => {
+    if (!VIEW_LAYOUTS.includes(next)) return;
+    if (next !== '1x1') lastMultiLayout = next;
+    layout = next;
+    applyLayout();
+  };
+
+  const togglePaneMaximize = (plane) => {
+    if (!VIEW_PLANES.includes(plane)) return;
+    if (layout === '1x1' && primary === plane) {
+      layout = lastMultiLayout;
+    } else {
+      primary = plane;
+      layout = '1x1';
+    }
+    applyLayout();
+  };
+
+  // Layout picker
+  for (const btn of layoutBtns) {
+    btn.addEventListener('click', () => setLayout(btn.dataset.layout));
+  }
+
+  // Per-pane maximize buttons, double-click on header, and "last used pane" tracking
+  for (const plane of VIEW_PLANES) {
+    const pane = panes[plane];
+    if (!pane) continue;
+    pane.querySelector('[data-max-toggle]')?.addEventListener('click', () => togglePaneMaximize(plane));
+    pane.querySelector('.viewport-header')?.addEventListener('dblclick', (e) => {
+      if (e.target.closest('button, input, select')) return;
+      togglePaneMaximize(plane);
+    });
+    pane.addEventListener('pointerenter', () => { hoveredPlane = plane; });
+    pane.addEventListener('pointerleave', () => { if (hoveredPlane === plane) hoveredPlane = null; });
+  }
+
+  // Keyboard: F maximizes/restores the hovered (or primary) view, L cycles layouts, Esc leaves single view.
+  // Capture phase so an open modal's Escape is handled by the modal first.
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (state.activeModalId) return;
+    const tag = (e.target?.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea' || e.target?.isContentEditable) return;
+    const k = e.key.toLowerCase();
+    if (k === 'f') {
+      e.preventDefault();
+      togglePaneMaximize(hoveredPlane || primary);
+    } else if (k === 'l') {
+      e.preventDefault();
+      setLayout(VIEW_LAYOUTS[(VIEW_LAYOUTS.indexOf(layout) + 1) % VIEW_LAYOUTS.length]);
+    } else if (e.key === 'Escape' && layout === '1x1' && !document.querySelector('.modal-backdrop:not(.hidden)')) {
+      layout = lastMultiLayout;
+      applyLayout();
+    }
+  }, true);
+
+  // Column splitter: workbench width
+  if (splitter && workstation) {
+    const maxWorkbench = () =>
+      Math.max(WORKBENCH_MIN_PX, Math.min(WORKBENCH_MAX_PX, workstation.clientWidth - VIEWER_MIN_PX - splitter.offsetWidth));
+    const currentWorkbench = () => document.querySelector('.workbench')?.getBoundingClientRect().width || 0;
+
+    const syncAria = () => {
+      const total = workstation.clientWidth || 1;
+      const pct = Math.round(((total - currentWorkbench()) / total) * 100);
+      splitter.setAttribute('aria-valuemin', '0');
+      splitter.setAttribute('aria-valuemax', '100');
+      splitter.setAttribute('aria-valuenow', String(pct));
+      splitter.setAttribute('aria-valuetext', `Viewer ${pct}% of width`);
+    };
+
+    const setWorkbenchWidth = (px, { persist = true } = {}) => {
+      if (px === null) {
+        workstation.style.removeProperty('--workbench-w');
+        if (persist) writeLayoutPrefs({ workbenchWidth: null });
+      } else {
+        const next = Math.round(Math.min(Math.max(px, WORKBENCH_MIN_PX), maxWorkbench()));
+        workstation.style.setProperty('--workbench-w', `${next}px`);
+        if (persist) writeLayoutPrefs({ workbenchWidth: next });
+      }
+      syncAria();
+      repaint();
+    };
+
+    if (Number.isFinite(prefs.workbenchWidth)) setWorkbenchWidth(prefs.workbenchWidth, { persist: false });
+
+    let dragging = false;
+    let startX = 0;
+    let startW = 0;
+    splitter.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      dragging = true;
+      startX = e.clientX;
+      startW = currentWorkbench();
+      splitter.setPointerCapture?.(e.pointerId);
+      splitter.classList.add('is-dragging');
+      document.body.classList.add('is-resizing-cols');
+      e.preventDefault();
+    });
+    splitter.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      // Dragging right widens the viewer (narrows the workbench)
+      setWorkbenchWidth(startW - (e.clientX - startX), { persist: false });
+    });
+    const endDrag = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      splitter.releasePointerCapture?.(e.pointerId);
+      splitter.classList.remove('is-dragging');
+      document.body.classList.remove('is-resizing-cols');
+      writeLayoutPrefs({ workbenchWidth: Math.round(currentWorkbench()) });
+    };
+    splitter.addEventListener('pointerup', endDrag);
+    splitter.addEventListener('pointercancel', endDrag);
+    splitter.addEventListener('dblclick', () => setWorkbenchWidth(null));
+    splitter.addEventListener('keydown', (e) => {
+      const w = currentWorkbench();
+      if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); setWorkbenchWidth(w - SPLITTER_KEY_STEP_PX); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); setWorkbenchWidth(w + SPLITTER_KEY_STEP_PX); }
+      else if (e.key === 'Home') { e.preventDefault(); setWorkbenchWidth(WORKBENCH_MAX_PX); }
+      else if (e.key === 'End') { e.preventDefault(); setWorkbenchWidth(WORKBENCH_MIN_PX); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setWorkbenchWidth(null); }
+    });
+    window.addEventListener('resize', () => {
+      const saved = parseFloat(workstation.style.getPropertyValue('--workbench-w'));
+      if (Number.isFinite(saved) && saved > maxWorkbench()) setWorkbenchWidth(maxWorkbench(), { persist: false });
+      else syncAria();
+    });
+    syncAria();
+  }
+
+  // Fullscreen: viewer + workbench
+  if (btnFullscreen && workstation) {
+    if (!workstation.requestFullscreen || !document.exitFullscreen) {
+      btnFullscreen.hidden = true;
+    } else {
+      btnFullscreen.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        } else {
+          workstation.requestFullscreen().catch(() => showToast('Fullscreen is not available in this browser context.', 'info'));
+        }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        const active = document.fullscreenElement === workstation;
+        btnFullscreen.setAttribute('aria-pressed', String(active));
+        btnFullscreen.classList.toggle('active', active);
+        const label = btnFullscreen.querySelector('.fs-label');
+        if (label) label.textContent = active ? 'Exit Fullscreen' : 'Fullscreen';
+        repaint();
+      });
+    }
+  }
+
+  applyLayout({ persist: false });
+}
+
+// ============================================================================
 // Bootstrap Startup Sequence
 // ============================================================================
 
 async function bootstrap() {
   initViewer();
   bindAllEvents();
+  bindViewerLayoutControls();
   renderResectLegend(null);
 
   setViewerLoading(true, 'Loading Case 01 — Pre-Op GBM T1ce, Ground Truth & AI Prediction…');

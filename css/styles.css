@@ -74,6 +74,17 @@ body {
     height: 100dvh;
     overflow: hidden;
   }
+
+  /* If the window is too short, scroll the stage rather than squash the viewports */
+  .viewer-stage {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .viewer-stage > .quad-grid-wrap {
+    min-height: 440px;
+  }
 }
 
 .hidden {
@@ -493,14 +504,15 @@ input[type="checkbox"]:focus-visible,
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 455px;
+  /* viewer | splitter | workbench — workbench width set by the draggable splitter */
+  grid-template-columns: minmax(0, 1fr) 7px var(--workbench-w, 455px);
   grid-template-rows: minmax(0, 1fr);
   gap: 0;
 }
 
 @media (max-width: 1360px) {
   .workstation {
-    grid-template-columns: minmax(0, 1fr) 410px;
+    grid-template-columns: minmax(0, 1fr) 7px var(--workbench-w, 410px);
   }
 }
 
@@ -517,6 +529,10 @@ input[type="checkbox"]:focus-visible,
   .workstation {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
+  }
+
+  .col-splitter {
+    display: none;
   }
 }
 
@@ -1166,6 +1182,219 @@ input[type="checkbox"]:focus-visible,
   color: #e0f2fe;
   background: rgba(45, 212, 191, 0.16);
   border-color: rgba(56, 189, 248, 0.50);
+}
+
+
+/* ==========================================================================
+   Viewer Layouts (2×2 · 1+3 · single), Pane Maximize, Splitter & Fullscreen
+   ========================================================================== */
+
+.layout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 7px;
+}
+
+.layout-icon {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  opacity: 0.85;
+}
+
+.vp-max-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.vp-max-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.vp-max-btn:hover,
+.vp-max-btn:focus-visible {
+  color: var(--text-primary);
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.28);
+  outline: none;
+}
+
+.quad-grid[data-layout="1x1"] .viewport-pane.is-primary .vp-max-btn {
+  color: var(--cyan);
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.42);
+}
+
+.viewport-header {
+  cursor: default;
+  user-select: none;
+}
+
+.viewport-pane.is-primary {
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+.quad-grid[data-layout="2x2"] .viewport-pane.is-primary {
+  border-color: var(--border-subtle);
+}
+
+/* 1 + 3: primary view large on the left, the other three stacked on the right */
+.quad-grid[data-layout="1p3"] {
+  grid-template-columns: minmax(0, 2.6fr) minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+.quad-grid[data-layout="1p3"] .viewport-pane.is-primary {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+}
+
+.quad-grid[data-layout="1p3"] .viewport-pane:not(.is-primary) {
+  grid-column: 2;
+}
+
+.quad-grid[data-layout="1p3"] .viewport-pane:not(.is-primary) .slice-slider {
+  width: 54px;
+}
+
+/* Single: one view fills the stage */
+.quad-grid[data-layout="1x1"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.quad-grid[data-layout="1x1"] .viewport-pane:not(.is-primary) {
+  display: none;
+}
+
+.quad-grid[data-layout="1x1"] .slice-slider {
+  width: 160px;
+}
+
+/* Column splitter between viewer and workbench */
+.col-splitter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  background: var(--bg-obsidian);
+  outline: none;
+}
+
+.col-splitter-grip {
+  width: 3px;
+  height: 48px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.26);
+  transition: background 0.14s ease, height 0.14s ease;
+}
+
+.col-splitter:hover .col-splitter-grip,
+.col-splitter.is-dragging .col-splitter-grip,
+.col-splitter:focus-visible .col-splitter-grip {
+  height: 88px;
+  background: var(--cyan);
+}
+
+.col-splitter:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+body.is-resizing-cols,
+body.is-resizing-cols * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* Fullscreen: viewer + workbench */
+.workstation:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg-obsidian);
+}
+
+.workstation::backdrop {
+  background: var(--bg-obsidian);
+}
+
+/* Compartment bar: stretchable bar + HTML legend (text no longer scales with panel width) */
+.comp-bar-svg {
+  height: 12px !important;
+}
+
+.comp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.comp-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.comp-legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Fixed-viewBox charts: keep text near design size on wide single-column layouts */
+.chart-slot svg:not(.comp-bar-svg) {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+@media (max-width: 680px) {
+  .quad-grid[data-layout="1p3"] {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-rows: 260px;
+  }
+
+  .quad-grid[data-layout="1p3"] .viewport-pane.is-primary,
+  .quad-grid[data-layout="1p3"] .viewport-pane:not(.is-primary) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .quad-grid[data-layout="1p3"] .viewport-pane.is-primary {
+    order: -1;
+    min-height: 380px;
+  }
+
+  .quad-grid[data-layout="1x1"] {
+    grid-template-rows: minmax(380px, 72vh);
+  }
+
+  .fs-label {
+    display: none;
+  }
 }
 
 /* ==========================================================================

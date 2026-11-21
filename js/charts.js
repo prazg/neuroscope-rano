@@ -975,9 +975,8 @@ export function renderCompartmentBar(container, volumetrics) {
     return;
   }
 
+  // Bar stretches to the panel width; the legend is HTML so its text never scales with the panel.
   const W = 420;
-  const H = 36;
-  const barY = 4;
   const barH = 12;
 
   const segments = wtVol > 0
@@ -990,7 +989,9 @@ export function renderCompartmentBar(container, volumetrics) {
 
   const total = wtVol > 0 ? wtVol : rcVol;
   const svg = svgEl('svg', {
-    viewBox: `0 0 ${W} ${H}`,
+    viewBox: `0 0 ${W} ${barH}`,
+    preserveAspectRatio: 'none',
+    class: 'comp-bar-svg',
     role: 'img',
     'aria-label': 'Tumor compartment volume proportions',
   });
@@ -998,15 +999,16 @@ export function renderCompartmentBar(container, volumetrics) {
   // Rounded clip path for clean pill ends
   const defs = svgEl('defs');
   const clip = svgEl('clipPath', { id: 'ns-comp-clip' });
-  clip.appendChild(svgEl('rect', { x: 0, y: barY, width: W, height: barH, rx: 6 }));
+  clip.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: barH, rx: 6 }));
   defs.appendChild(clip);
   svg.appendChild(defs);
 
   const barGroup = svgEl('g', { 'clip-path': 'url(#ns-comp-clip)' });
   const tip = createTooltipController(container);
+  const legend = document.createElement('div');
+  legend.className = 'comp-legend';
 
   let curX = 0;
-  let legendX = 2;
 
   segments.forEach((seg) => {
     const frac = seg.vol / total;
@@ -1015,7 +1017,7 @@ export function renderCompartmentBar(container, volumetrics) {
 
     const rect = svgEl('rect', {
       x: curX,
-      y: barY,
+      y: 0,
       width: segW,
       height: barH,
       fill: seg.color,
@@ -1028,19 +1030,18 @@ export function renderCompartmentBar(container, volumetrics) {
     barGroup.appendChild(rect);
     curX += segW;
 
-    // Inline bottom legend item
-    svg.appendChild(svgEl('circle', { cx: legendX + 4, cy: 29, r: 3.5, fill: seg.color }));
-    const labelStr = `${seg.code} ${pct.toFixed(0)}% (${seg.vol.toFixed(1)} cm³)`;
-    svg.appendChild(svgEl('text', {
-      x: legendX + 11,
-      y: 32,
-      fill: '#94a3b8',
-      'font-size': 9.2,
-      'font-family': FONT_MONO,
-    }, labelStr));
-    legendX += labelStr.length * 5.8 + 18;
+    const item = document.createElement('span');
+    item.className = 'comp-legend-item';
+    const dot = document.createElement('span');
+    dot.className = 'comp-legend-dot';
+    dot.style.background = seg.color;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode(`${seg.code} ${pct.toFixed(0)}% (${seg.vol.toFixed(1)} cm³)`));
+    item.title = seg.name;
+    legend.appendChild(item);
   });
 
   svg.appendChild(barGroup);
   container.appendChild(svg);
+  container.appendChild(legend);
 }
